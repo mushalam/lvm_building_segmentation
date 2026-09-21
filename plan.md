@@ -106,3 +106,67 @@ polygon output [5], which is what the deliverable actually consumes.
 [3] NourEldeen et al. *Enhanced building footprint extraction from satellite imagery using Mask R-CNN and PointRend.* Bulletin of EEI.
 [4] Kirillov, A. et al. *PointRend: Image Segmentation as Rendering.* CVPR, 2020.
 [5] *SAMPolyBuild: Adapting the Segment Anything Model for polygonal building extraction.* ISPRS J., 2024.
+
+
+---
+
+# Result: the central bet is refuted
+
+**Run 1 (`runs/maskrcnn_v1`)**, Mask R-CNN R50-FPN v2, 15 epochs, batch 4,
+anchors from the data, scored on the same 700 validation images as the
+incumbent with the same protocol:
+
+| | Mask R-CNN (46M) | SAM 3 v2_full (841M) |
+|---|---|---|
+| segm AP | **0.1789** | **0.2383** |
+| AP@0.50 | 0.4446 | 0.507 |
+| AP@0.75 | 0.1099 | 0.200 |
+| **AP small** | **0.0286** | **0.078** |
+| AP medium | 0.2506 | 0.346 |
+| AP large | 0.2905 | 0.359 |
+| AR | 0.2987 | 0.333 |
+
+**It loses on every measure, and by the widest margin on AP-small — the metric
+the whole design was built to win.** 2.7x worse, where I predicted better.
+
+## Why the reasoning was wrong
+
+I compared SAM 3's mask *output grid* (stride 3.5) with Mask R-CNN's mask output
+grid (28x28 per ROI) and concluded the latter gave 3.3x more resolution at p25.
+
+That compares the wrong things. Mask R-CNN's 28x28 is interpolated from features
+pooled by ROIAlign off **P2, at stride 4**. A 41 px building yields ~10x10
+*features* — essentially the same as SAM 3's 11.8. The output grid was never the
+binding constraint; **feature stride is**, and both sit at roughly stride 4. A
+mask head can upsample to any resolution it likes and cannot invent detail the
+backbone did not encode.
+
+## What this implies, which is the useful part
+
+1. **Boundary quality is limited by feature resolution, not mask-head output.**
+   Interventions that refine the output (PointRend, RefineMask) address a
+   symptom. Interventions that raise feature resolution — larger input, a
+   stride-2 FPN level, a high-resolution stem — address the cause.
+2. **The incumbent's `--highres-stem`, never yet run, is better motivated than
+   anything attempted here**, and is a one-flag experiment on a model already
+   30% ahead.
+3. **Scale and pretraining are doing real work.** 841M parameters with
+   large-scale pretraining beat 46M COCO-pretrained by 33% on this task, on a
+   third the epochs per unit of wall-clock. The gap is not obviously closable by
+   a better small architecture.
+
+## What was worth having anyway
+
+- The harness caught its own subset-scoring bug within one validation pass, via
+  a perfect-prediction self-test and an arithmetic check (0.19 x 200/700 =
+  0.054). The predecessor shipped the same bug for four full runs.
+- The comparison is clean: same split, same protocol, no threshold, ids pinned.
+- A negative result in one day, costing ~2 GPU-hours, is a cheap way to rule out
+  a plausible architecture.
+
+## Honest status against the brief
+
+The brief was to beat the incumbent within a day. **It does not.** 0.1789
+against 0.2383. Reporting that rather than looking for a framing that rescues
+it; the diagnostic value is in *why*, and that has redirected the incumbent
+project's next experiment.

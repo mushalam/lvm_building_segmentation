@@ -1,0 +1,16 @@
+{
+  "AP": 0.178906514856829,
+  "AP50": 0.4445946048148731,
+  "AP75": 0.10989201276829517,
+  "AP_small": 0.02859683348233664,
+  "AP_medium": 0.25063942943389866,
+  "AP_large": 0.2904769919703893,
+  "AR": 0.29869664691320985,
+  "max_dets": 300,
+  "n_results": 265289,
+  "n_images_scored": 700,
+  "checkpoint": "runs/maskrcnn_v1/best.pt",
+  "split": "valid",
+  "images": 700,
+  "note": "scored with lvm.score after the subset-scoring bug was fixed; history.json metrics are scaled by ~200/700 and should not be used"
+}
