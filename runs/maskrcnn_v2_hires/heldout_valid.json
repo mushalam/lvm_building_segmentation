@@ -1,0 +1,15 @@
+{
+  "AP": 0.19475653496641912,
+  "AP50": 0.46332737735044277,
+  "AP75": 0.134227295033789,
+  "AP_small": 0.034177152968430026,
+  "AP_medium": 0.27333561895404496,
+  "AP_large": 0.3124639384412109,
+  "AR": 0.31022616457880126,
+  "max_dets": 300,
+  "n_results": 181319,
+  "n_images_scored": 700,
+  "checkpoint": "runs/maskrcnn_v2_hires/best.pt",
+  "split": "valid",
+  "images": 700
+}

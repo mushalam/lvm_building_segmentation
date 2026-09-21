@@ -29,6 +29,8 @@ def main():
     ap.add_argument("--split", default="test")
     ap.add_argument("--max-dets", type=int, default=300,
                     help="300 matches what the comparison target was scored at")
+    ap.add_argument("--image-size", type=int, default=None,
+                    help="must match training; read from the checkpoint if absent")
     ap.add_argument("--batch-size", type=int, default=2)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--out")
@@ -36,7 +38,9 @@ def main():
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
-    model = build_model(max(args.max_dets, 400)).to(device)
+    size = args.image_size or ck.get("image_size", 1024)
+    print(f"  input size {size} (from {'flag' if args.image_size else 'checkpoint'})")
+    model = build_model(max(args.max_dets, 400), image_size=size).to(device)
     model.load_state_dict(ck["model"]); model.eval()
 
     ds = BuildingDataset(args.data, args.split, train=False)

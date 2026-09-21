@@ -33,20 +33,24 @@ from lvm.evaluate import load_gt, summarise
 ANCHORS = (12, 30, 54, 84, 175)
 
 
-def build_model(detections_per_img=400, trainable_layers=5):
+def build_model(detections_per_img=400, trainable_layers=5, image_size=1024):
     model = maskrcnn_resnet50_fpn_v2(
         weights="DEFAULT", weights_backbone=None,
         box_detections_per_img=detections_per_img,
         rpn_post_nms_top_n_train=3000, rpn_post_nms_top_n_test=3000,
         rpn_pre_nms_top_n_train=4000, rpn_pre_nms_top_n_test=4000,
         box_batch_size_per_image=512, rpn_batch_size_per_image=256,
-        min_size=1024, max_size=1024,
+        min_size=image_size, max_size=image_size,
         trainable_backbone_layers=trainable_layers,
     )
     # Anchors sized from the data. The FPN has five levels, so five tuples.
+    # Anchors are in input-image pixels, so they scale with the input. Leaving
+    # them fixed while upsampling would make every anchor too small by the
+    # scale factor -- a silent mismatch that costs recall.
+    scale = image_size / 1024.0
+    sizes = tuple((round(a * scale),) for a in ANCHORS)
     model.rpn.anchor_generator = AnchorGenerator(
-        sizes=tuple((s,) for s in ANCHORS),
-        aspect_ratios=((0.5, 1.0, 2.0),) * len(ANCHORS))
+        sizes=sizes, aspect_ratios=((0.5, 1.0, 2.0),) * len(sizes))
 
     in_feat = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_feat, 2)
@@ -69,6 +73,9 @@ def validate(model, loader, gt, device, max_dets):
                 rle["counts"] = rle["counts"].decode("ascii")
                 results.append({"image_id": iid, "category_id": 1,
                                 "segmentation": rle, "score": float(s)})
+    # img_ids defaults to the ids present in `results`, so a subset validation
+    # cannot be scored against the full ground truth. Run 1 shipped that bug for
+    # its whole training and every metric came out scaled by 200/700.
     return summarise(gt, results, max_dets=max_dets)
 
 
@@ -81,6 +88,12 @@ def main():
     ap.add_argument("--lr", type=float, default=0.005)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--max-dets", type=int, default=400)
+    ap.add_argument("--image-size", type=int, default=1024,
+                    help="input size fed to the model. Run 1 showed the binding "
+                         "constraint is FEATURE resolution, not mask-head output: "
+                         "a 41px building at stride 4 gives ~10x10 features "
+                         "whatever the mask grid. Upsampling the input is the "
+                         "direct way to give small objects more feature cells")
     ap.add_argument("--val-images", type=int, default=200,
                     help="validation is expensive; a fixed prefix of valid/ is "
                          "enough to track progress. Final numbers come from "
@@ -104,7 +117,7 @@ def main():
     vl = torch.utils.data.DataLoader(va, batch_size=args.batch_size, shuffle=False,
                                      num_workers=args.workers, collate_fn=collate)
 
-    model = build_model(args.max_dets).to(device)
+    model = build_model(args.max_dets, image_size=args.image_size).to(device)
     n_tr = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"model: {sum(p.numel() for p in model.parameters())/1e6:.0f}M parameters, "
           f"{n_tr/1e6:.0f}M trainable")
@@ -146,7 +159,8 @@ def main():
         if m["AP"] > best:
             best = m["AP"]
             torch.save({"model": model.state_dict(), "epoch": epoch,
-                        "metrics": m, "anchors": ANCHORS}, out / "best.pt")
+                        "metrics": m, "anchors": ANCHORS,
+                        "image_size": args.image_size}, out / "best.pt")
             print(f"  new best, saved", flush=True)
     print(f"done. best AP {best:.4f}")
 

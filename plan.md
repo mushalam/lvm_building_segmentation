@@ -170,3 +170,78 @@ The brief was to beat the incumbent within a day. **It does not.** 0.1789
 against 0.2383. Reporting that rather than looking for a framing that rescues
 it; the diagnostic value is in *why*, and that has redirected the incumbent
 project's next experiment.
+
+
+---
+
+# Run 2: higher feature resolution, and what it did not fix
+
+Run 1's refutation said the binding constraint was **feature stride**, not
+mask-head output. Run 2 tests that directly: identical architecture and epochs,
+input upsampled 1024 -> 2048, anchors scaled with it.
+
+**All three scored on the same 700 validation images, same protocol:**
+
+| | run 1 @1024 | run 2 @2048 | SAM 3 v2_full |
+|---|---|---|---|
+| trainable | 46M | 46M | 487M |
+| **segm AP** | 0.1789 | **0.1947** | **0.2383** |
+| AP@0.50 | 0.4446 | 0.4633 | 0.507 |
+| AP@0.75 | 0.1099 | 0.1342 | 0.200 |
+| AP small | 0.0286 | 0.0342 | 0.078 |
+| AP medium | 0.2506 | 0.2733 | 0.346 |
+| AP large | 0.2905 | 0.3125 | 0.359 |
+| AR | 0.2987 | 0.3102 | 0.333 |
+
+## What run 2 establishes
+
+**Feature resolution matters, and was correctly identified.** +0.0158 AP from
+one change, with the largest relative gain on AP@0.75 (+22%), which is the
+metric that measures tight localisation. The mechanism is confirmed.
+
+**It is not the dominant factor.** It closed **27% of the gap** to SAM 3, not
+the majority. And `AP_small` remains **2.3x worse** (0.034 against 0.078)
+despite doubling the feature cells available to every small object. If
+resolution were the main driver of that gap, this run should have closed far
+more of it.
+
+**So SAM 3's advantage on small objects is mostly scale and pretraining, not
+architecture.** That is the honest reading, and it is the opposite of the
+premise this project started from.
+
+## A measurement note against ourselves
+
+Mid-run the 200-image validation showed 0.2117 and was reported as closing 55%
+of the gap. The full 700-image split gives 0.1947 and 27%. The 200-image subset
+flattered the result by 0.017. Nothing was wrong with either number; the error
+was characterising a result from the cheap proxy before the proper measurement
+existed. Validation subsets are for tracking progress, not for conclusions.
+
+## Status against the brief
+
+**The brief was to beat SAM 3's 0.2383 within a day. Run 2 reaches 0.1947. It
+does not.**
+
+What the day produced instead: two falsifiable hypotheses tested, one refuted
+outright and one confirmed but shown insufficient; a measurement harness that
+caught its own subset-scoring bug within a single validation pass; and a
+quantified answer to *why* the incumbent wins, which is scale and pretraining
+rather than mask-head design.
+
+## Where a third run would go, and whether it is worth it
+
+Ranked by what the evidence now supports:
+
+1. **Longer training.** SAM 3 had 50 epochs; both runs here had 12-15. The
+   incumbent's own arms peaked at their final epoch, so 12 is likely
+   under-trained. Cheapest untested variable.
+2. **A stronger pretrained backbone.** The gap is attributed to pretraining, so
+   this attacks the cause. torchvision offers only COCO weights; a
+   remote-sensing or self-supervised backbone would be the real test.
+3. **Higher resolution still (3072) or a stride-2 level.** Diminishing: the
+   1024 -> 2048 step bought 0.0158 and the next would likely buy less.
+
+Honest assessment: **(2) is the only one likely to close a 0.044 gap**, and it
+is not a one-day change. A specialist architecture at this scale appears to be
+the wrong tool against a well-pretrained 841M foundation model on this task,
+which is itself a useful finding for the project that commissioned it.
