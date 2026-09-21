@@ -16,6 +16,7 @@ So: one function, called by training validation and by offline scoring alike,
 with the caps and thresholds as explicit arguments and no defaults that differ
 by caller.
 """
+import copy
 import json
 from contextlib import redirect_stdout
 from io import StringIO
@@ -25,21 +26,38 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 
-def summarise(coco_gt, results, iou_type="segm", max_dets=300, quiet=True):
+def summarise(coco_gt, results, iou_type="segm", max_dets=300, img_ids=None,
+              quiet=True):
     """Score `results` (COCO dicts) against `coco_gt`. Returns a metrics dict.
 
     `max_dets` belongs to the dataset, not the metric: COCO's default of 100
     suits ~7 instances per image, LVIS raised it to 300 for dense scenes, and
     this data averages 77 with a maximum of 305.
+
+    `img_ids` MUST be given whenever the predictions cover a subset of the
+    ground-truth file. COCOeval otherwise evaluates every image in `coco_gt`,
+    and the unscored ones contribute ground truth that nothing can match, so AP
+    comes out multiplied by roughly (scored / total). Not hypothetical: the
+    predecessor project shipped this for four full runs, and this file's own
+    author reproduced it on the first validation pass here -- 200 images scored
+    against 700 images of ground truth reported AP 0.054 where the true value
+    was near 0.19. Defaulting to the ids present in `results` makes it hard to
+    repeat; pass it explicitly when the intended set is known.
     """
     if not results:
         return {"AP": -1.0, "note": "no detections"}
+    if img_ids is None:
+        img_ids = sorted({r["image_id"] for r in results})
 
     buf = StringIO()
     with redirect_stdout(buf if quiet else None):
-        coco_dt = coco_gt.loadRes(list(results))
+        # Deep copy: loadRes adds 'bbox' and 'area' to the dicts it is given, so
+        # a second call on the same list takes a different branch and raises.
+        # Mutating the caller's data is also just bad manners.
+        coco_dt = coco_gt.loadRes(copy.deepcopy(list(results)))
         ev = COCOeval(coco_gt, coco_dt, iouType=iou_type)
         ev.params.maxDets = [1, 10, int(max_dets)]
+        ev.params.imgIds = list(img_ids)
         ev.evaluate(); ev.accumulate(); ev.summarize()
 
     # stats[0] is built by `_summarize(1)`, whose signature defaults to
@@ -65,7 +83,8 @@ def summarise(coco_gt, results, iou_type="segm", max_dets=300, quiet=True):
             "AP_small": at(area="small"), "AP_medium": at(area="medium"),
             "AP_large": at(area="large"),
             "AR": float(np.mean(r[r > -1])) if (r > -1).any() else -1.0,
-            "max_dets": int(max_dets), "n_results": len(results)}
+            "max_dets": int(max_dets), "n_results": len(results),
+            "n_images_scored": len(img_ids)}
 
 
 def load_gt(ann_file):
