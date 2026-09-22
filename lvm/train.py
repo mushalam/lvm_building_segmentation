@@ -40,14 +40,25 @@ def anchor_sizes_for(image_size):
 
 
 def build_model(detections_per_img=400, trainable_layers=5, image_size=1024,
-                backbone="resnet50"):
+                backbone="resnet50", scratch_heads=False):
+    """scratch_heads is the control for the DINOv3 arms.
+
+    torchvision ships maskrcnn_resnet50_fpn_v2 with COCO-pretrained FPN, RPN
+    and heads, while the timm paths initialise all of those randomly. Comparing
+    them directly therefore confounds backbone pretraining with head
+    initialisation -- run 6 opened at AP 0.0356 against the baseline's 0.1393
+    for that reason alone. Setting weights=None while keeping an ImageNet
+    trunk reproduces the handicap on the ResNet side, so the two arms differ
+    only in which trunk they carry.
+    """
     if backbone != "resnet50":
         from lvm.backbones import build_timm_maskrcnn
         return build_timm_maskrcnn(
             backbone, anchor_sizes_for(image_size),
             detections_per_img=detections_per_img, image_size=image_size)
     model = maskrcnn_resnet50_fpn_v2(
-        weights="DEFAULT", weights_backbone=None,
+        weights=None if scratch_heads else "DEFAULT",
+        weights_backbone="DEFAULT" if scratch_heads else None,
         box_detections_per_img=detections_per_img,
         rpn_post_nms_top_n_train=3000, rpn_post_nms_top_n_test=3000,
         rpn_pre_nms_top_n_train=4000, rpn_pre_nms_top_n_test=4000,
@@ -105,6 +116,9 @@ def main():
                          "a 41px building at stride 4 gives ~10x10 features "
                          "whatever the mask grid. Upsampling the input is the "
                          "direct way to give small objects more feature cells")
+    ap.add_argument("--scratch-heads", action="store_true",
+                    help="ResNet-50 control for the DINOv3 arms: ImageNet "
+                         "trunk, randomly initialised FPN/RPN/heads")
     ap.add_argument("--d4", action="store_true",
                     help="D4 train-time augmentation: 8 dihedral views, exact "
                          "for nadir imagery. See lvm.data.apply_d4")
@@ -137,7 +151,8 @@ def main():
                                      num_workers=args.workers, collate_fn=collate)
 
     model = build_model(args.max_dets, image_size=args.image_size,
-                        backbone=args.backbone).to(device)
+                        backbone=args.backbone,
+                        scratch_heads=args.scratch_heads).to(device)
     ntr = sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e6
     print(f"backbone {args.backbone}: {ntr:.1f}M trainable params", flush=True)
     n_tr = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -181,7 +196,7 @@ def main():
         ckpt = {"model": model.state_dict(), "epoch": epoch,
                 "metrics": m, "anchors": ANCHORS,
                 "image_size": args.image_size, "backbone": args.backbone,
-                "d4": args.d4}
+                "d4": args.d4, "scratch_heads": args.scratch_heads}
         # Always keep the newest weights. `best` is chosen on --val-images,
         # a subsample whose epoch-to-epoch spread (+-0.07 AP at 200 images in
         # run 3) is far wider than the differences it is asked to arbitrate,

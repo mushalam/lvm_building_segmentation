@@ -43,7 +43,8 @@ def main():
     bb = ck.get("backbone", "resnet50")
     print(f"  backbone {bb} (from checkpoint)")
     model = build_model(max(args.max_dets, 400), image_size=size,
-                        backbone=bb).to(device)
+                        backbone=bb,
+                        scratch_heads=ck.get("scratch_heads", False)).to(device)
     model.load_state_dict(ck["model"]); model.eval()
 
     ds = BuildingDataset(args.data, args.split, train=False)
