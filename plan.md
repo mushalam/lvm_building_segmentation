@@ -431,3 +431,68 @@ stopped, so 20 epochs at lr 0.005 should exceed 0.19476. If it does not, the
 2048 px Mask R-CNN has converged near 0.195 and the remaining 0.043 to SAM 3 is
 not reachable by schedule changes at all — which would settle option (1) and
 promote the pretrained-backbone question to the only live one.
+
+## Run 5, result: the prediction was wrong, and it closes option (1)
+
+Run 2's exact configuration with epochs 12 -> 20, nothing else changed:
+
+| run | epochs | checkpoint | full-split AP |
+|---|---|---|---|
+| 2 | 12 | best (ep 9) | **0.19476** |
+| 5 | 20 | best (ep 12) | 0.18963 |
+| 5 | 20 | last (ep 19) | 0.18453 |
+
+I predicted, in writing and before the result, that 20 epochs would exceed
+0.19476 because run 2 was still climbing when it stopped. It did not. Longer
+training is worth **-0.0051**, and the prediction is refuted.
+
+### The mechanism is overfitting, and the loss shows it plainly
+
+|  | train_loss | subset AP |
+|---|---|---|
+| run 2, final epoch (11) | 1.0689 | 0.2073 |
+| run 5, final epoch (19) | **0.8842** | 0.1971 |
+
+Run 5 fit the training set 17% better and generalised worse. Over its last
+eight epochs train_loss falls monotonically 1.1495 -> 0.8842 while validation
+AP drifts 0.2043 -> 0.1971. The extra epochs are spent memorising.
+
+This also explains a pattern visible since run 4: `best.pt` lands mid-schedule
+in both runs (epoch 14 of 20, then epoch 12 of 20), never at the end. The late
+low-learning-rate phase of a OneCycle schedule is where this model overfits.
+
+**Option (1) from the run-2 postmortem is closed.** The architecture saturates
+near 12 epochs on 2,451 images and further epochs actively hurt. No schedule
+change will reach SAM 3's 0.2383 from 0.195.
+
+### Why that makes augmentation the obvious next move
+
+The loader applied **no augmentation at all** -- `__getitem__` returned each
+tile unmodified. With 2,451 training tiles and a 46M-parameter detector,
+saturating at epoch 12 is then unsurprising.
+
+The remedy is handed over by the sibling project. D4 -- the 8 dihedral
+transforms -- is *exact* for nadir aerial imagery, because a nadir view has no
+canonical "up", so a flipped or quarter-turned tile is a valid sample rather
+than a distortion. That symmetry is precisely why D4 test-time augmentation
+earned +6% AP over there. This is its train-time counterpart, and it
+multiplies the effective training set by eight.
+
+Implemented in `lvm.data.apply_d4`, with boxes recomputed from the transformed
+masks rather than transformed themselves -- corner rotation is correct only at
+multiples of 90 degrees and fails silently otherwise, whereas a box derived
+from its mask cannot drift out of agreement with it. Verified across all 8
+transforms on a real 34-instance tile: exact box/mask agreement, mask areas
+preserved, all 8 renderings distinct.
+
+## Runs 6 and 7
+
+**Run 6** (launched 19:25, `runs/maskrcnn_v6_dinov3t`): DINOv3 ConvNeXt-Tiny
+trunk, otherwise run 5's configuration. Tests pretraining quality at matched
+capacity (49.6M vs 45.9M total). Batch 2 fits in 43.2 GB.
+
+**Run 7** (queued): ResNet-50 with `--d4`, otherwise run 5's configuration.
+Isolates augmentation as a single variable against run 5's 0.18963.
+
+Between them these separate the two live hypotheses -- better features, and
+more effective data -- rather than confounding them as runs 3 and 4 did.

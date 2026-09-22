@@ -105,6 +105,9 @@ def main():
                          "a 41px building at stride 4 gives ~10x10 features "
                          "whatever the mask grid. Upsampling the input is the "
                          "direct way to give small objects more feature cells")
+    ap.add_argument("--d4", action="store_true",
+                    help="D4 train-time augmentation: 8 dihedral views, exact "
+                         "for nadir imagery. See lvm.data.apply_d4")
     ap.add_argument("--backbone", default="resnet50",
                     choices=["resnet50", "dinov3_convnext_tiny",
                              "dinov3_convnext_small", "dinov3_convnext_base"],
@@ -120,7 +123,7 @@ def main():
     (out / "args.json").write_text(json.dumps(vars(args), indent=2))
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    tr = BuildingDataset(args.data, "train", train=True)
+    tr = BuildingDataset(args.data, "train", train=True, d4=args.d4)
     va = BuildingDataset(args.data, "valid", train=False)
     va.index = va.index[:args.val_images]
     print(f"train {len(tr):,} tiles ({tr.dropped:,} slivers dropped)  "
@@ -177,7 +180,8 @@ def main():
               f"({m['minutes']:.1f} min)", flush=True)
         ckpt = {"model": model.state_dict(), "epoch": epoch,
                 "metrics": m, "anchors": ANCHORS,
-                "image_size": args.image_size, "backbone": args.backbone}
+                "image_size": args.image_size, "backbone": args.backbone,
+                "d4": args.d4}
         # Always keep the newest weights. `best` is chosen on --val-images,
         # a subsample whose epoch-to-epoch spread (+-0.07 AP at 200 images in
         # run 3) is far wider than the differences it is asked to arbitrate,

@@ -18,7 +18,8 @@ class BuildingDataset(torch.utils.data.Dataset):
     regression and the failure surfaces far from its cause.
     """
 
-    def __init__(self, root, split, train=True, min_side=2.0):
+    def __init__(self, root, split, train=True, min_side=2.0, d4=False):
+        self.d4 = d4
         self.dir = Path(root) / split
         doc = json.loads((self.dir / "_annotations.coco.json").read_text())
         self.images = doc["images"]
@@ -71,8 +72,52 @@ class BuildingDataset(torch.utils.data.Dataset):
                                      dtype=torch.uint8),
             "image_id": torch.tensor([info["id"]]),
         }
+        if self.d4:
+            t, target = apply_d4(t, target, int(torch.randint(8, ())))
         return t, target
 
 
 def collate(batch):
     return tuple(zip(*batch))
+
+
+def apply_d4(img, target, k):
+    """One of the 8 dihedral transforms, applied to image and masks together.
+
+    Exact for nadir aerial imagery: a nadir view has no canonical "up", so a
+    flipped or quarter-turned tile is an equally valid sample rather than a
+    distortion. The same symmetry is why D4 test-time augmentation earned +6%
+    AP in the sibling project; this is its train-time counterpart, and it
+    multiplies an effective 2,451-image training set by eight.
+
+    Boxes are recomputed from the transformed masks rather than transformed
+    themselves. Rotating box corners and re-deriving an axis-aligned extent is
+    correct only for multiples of 90 degrees and silently wrong if anyone later
+    adds an arbitrary angle; deriving from the mask cannot drift out of
+    agreement with it.
+    """
+    assert 0 <= k < 8, f"k must be 0..7, got {k}"
+    if k & 4:
+        img = torch.flip(img, dims=[2])
+        target["masks"] = torch.flip(target["masks"], dims=[2])
+    r = k & 3
+    if r:
+        img = torch.rot90(img, r, dims=[1, 2])
+        target["masks"] = torch.rot90(target["masks"], r, dims=[1, 2])
+
+    m = target["masks"]
+    if m.numel() and m.shape[0]:
+        boxes = []
+        keep = []
+        for i in range(m.shape[0]):
+            ys, xs = torch.where(m[i] > 0)
+            if ys.numel() == 0:
+                continue
+            boxes.append([xs.min().item(), ys.min().item(),
+                          xs.max().item() + 1, ys.max().item() + 1])
+            keep.append(i)
+        idx = torch.as_tensor(keep, dtype=torch.int64)
+        target["masks"] = m[idx]
+        target["labels"] = target["labels"][idx]
+        target["boxes"] = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
+    return img.contiguous(), target
