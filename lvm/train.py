@@ -33,7 +33,19 @@ from lvm.evaluate import load_gt, summarise
 ANCHORS = (12, 30, 54, 84, 175)
 
 
-def build_model(detections_per_img=400, trainable_layers=5, image_size=1024):
+def anchor_sizes_for(image_size):
+    """Anchors are in input-image pixels, so they scale with the input."""
+    scale = image_size / 1024.0
+    return tuple((round(a * scale),) for a in ANCHORS)
+
+
+def build_model(detections_per_img=400, trainable_layers=5, image_size=1024,
+                backbone="resnet50"):
+    if backbone != "resnet50":
+        from lvm.backbones import build_timm_maskrcnn
+        return build_timm_maskrcnn(
+            backbone, anchor_sizes_for(image_size),
+            detections_per_img=detections_per_img, image_size=image_size)
     model = maskrcnn_resnet50_fpn_v2(
         weights="DEFAULT", weights_backbone=None,
         box_detections_per_img=detections_per_img,
@@ -47,8 +59,7 @@ def build_model(detections_per_img=400, trainable_layers=5, image_size=1024):
     # Anchors are in input-image pixels, so they scale with the input. Leaving
     # them fixed while upsampling would make every anchor too small by the
     # scale factor -- a silent mismatch that costs recall.
-    scale = image_size / 1024.0
-    sizes = tuple((round(a * scale),) for a in ANCHORS)
+    sizes = anchor_sizes_for(image_size)
     model.rpn.anchor_generator = AnchorGenerator(
         sizes=sizes, aspect_ratios=((0.5, 1.0, 2.0),) * len(sizes))
 
@@ -94,6 +105,11 @@ def main():
                          "a 41px building at stride 4 gives ~10x10 features "
                          "whatever the mask grid. Upsampling the input is the "
                          "direct way to give small objects more feature cells")
+    ap.add_argument("--backbone", default="resnet50",
+                    choices=["resnet50", "dinov3_convnext_tiny",
+                             "dinov3_convnext_small", "dinov3_convnext_base"],
+                    help="resnet50 carries COCO-pretrained heads; the dinov3 "
+                         "paths initialise heads randomly. See lvm/backbones.py")
     ap.add_argument("--val-images", type=int, default=200,
                     help="validation is expensive; a fixed prefix of valid/ is "
                          "enough to track progress. Final numbers come from "
@@ -117,7 +133,10 @@ def main():
     vl = torch.utils.data.DataLoader(va, batch_size=args.batch_size, shuffle=False,
                                      num_workers=args.workers, collate_fn=collate)
 
-    model = build_model(args.max_dets, image_size=args.image_size).to(device)
+    model = build_model(args.max_dets, image_size=args.image_size,
+                        backbone=args.backbone).to(device)
+    ntr = sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e6
+    print(f"backbone {args.backbone}: {ntr:.1f}M trainable params", flush=True)
     n_tr = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"model: {sum(p.numel() for p in model.parameters())/1e6:.0f}M parameters, "
           f"{n_tr/1e6:.0f}M trainable")
@@ -158,7 +177,7 @@ def main():
               f"({m['minutes']:.1f} min)", flush=True)
         ckpt = {"model": model.state_dict(), "epoch": epoch,
                 "metrics": m, "anchors": ANCHORS,
-                "image_size": args.image_size}
+                "image_size": args.image_size, "backbone": args.backbone}
         # Always keep the newest weights. `best` is chosen on --val-images,
         # a subsample whose epoch-to-epoch spread (+-0.07 AP at 200 images in
         # run 3) is far wider than the differences it is asked to arbitrate,

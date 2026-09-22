@@ -40,7 +40,10 @@ def main():
     ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
     size = args.image_size or ck.get("image_size", 1024)
     print(f"  input size {size} (from {'flag' if args.image_size else 'checkpoint'})")
-    model = build_model(max(args.max_dets, 400), image_size=size).to(device)
+    bb = ck.get("backbone", "resnet50")
+    print(f"  backbone {bb} (from checkpoint)")
+    model = build_model(max(args.max_dets, 400), image_size=size,
+                        backbone=bb).to(device)
     model.load_state_dict(ck["model"]); model.eval()
 
     ds = BuildingDataset(args.data, args.split, train=False)
