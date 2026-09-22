@@ -156,11 +156,18 @@ def main():
         print(f"epoch {epoch}: AP {m['AP']:.4f} AP50 {m['AP50']:.4f} "
               f"AP75 {m['AP75']:.4f} AP_small {m['AP_small']:.4f} "
               f"({m['minutes']:.1f} min)", flush=True)
+        ckpt = {"model": model.state_dict(), "epoch": epoch,
+                "metrics": m, "anchors": ANCHORS,
+                "image_size": args.image_size}
+        # Always keep the newest weights. `best` is chosen on --val-images,
+        # a subsample whose epoch-to-epoch spread (+-0.07 AP at 200 images in
+        # run 3) is far wider than the differences it is asked to arbitrate,
+        # so it can lock onto an early lucky epoch and discard later, better
+        # models. last.pt makes that recoverable: score both on the full split.
+        torch.save(ckpt, out / "last.pt")
         if m["AP"] > best:
             best = m["AP"]
-            torch.save({"model": model.state_dict(), "epoch": epoch,
-                        "metrics": m, "anchors": ANCHORS,
-                        "image_size": args.image_size}, out / "best.pt")
+            torch.save(ckpt, out / "best.pt")
             print(f"  new best, saved", flush=True)
     print(f"done. best AP {best:.4f}")
 
