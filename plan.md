@@ -245,3 +245,66 @@ Honest assessment: **(2) is the only one likely to close a 0.044 gap**, and it
 is not a one-day change. A specialist architecture at this scale appears to be
 the wrong tool against a well-pretrained 841M foundation model on this task,
 which is itself a useful finding for the project that commissioned it.
+
+# Run 3, in flight: longer training, and a selection rule that cannot decide
+
+Run 3 tests option (1) above — 30 epochs at image size 2048, the cheapest
+untested variable — and it exposed a defect in this project's own harness
+before it produced a result.
+
+## The validation subset is too small for the question asked of it
+
+Through epoch 13, validation AP on the 200-image selection subset reads:
+
+```
+ep 0  0.1506    ep 5  0.1367    ep 10  0.1518
+ep 1  0.1453    ep 6  0.1434    ep 11  0.1758
+ep 2  0.1438    ep 7  0.1370    ep 12  0.1722
+ep 3  0.1325    ep 8  0.1710    ep 13  0.2024
+ep 4  0.2036    ep 9  0.1502
+```
+
+Epochs 3 and 4 are consecutive and differ by **0.0711 AP**. The best-checkpoint
+rule is meanwhile deciding between epoch 4 (0.2036) and epoch 13 (0.2024) — a
+margin of **0.0012**, about one-sixtieth of the noise floor the same estimator
+demonstrates one epoch apart. The rule is not measuring what it claims to.
+
+The components disagree with the scalar, which is the tell. Epoch 13 beats
+epoch 4 on AP75 (0.1419 vs 0.1324) and AP_small (0.027 vs 0.025) and loses only
+on AP50 (0.4795 vs 0.4890) — the loosest threshold, where duplicate and
+near-miss detections are most easily rewarded. Epoch 13 also sits on a rising
+shoulder (0.1518, 0.1758, 0.1722, 0.2024) while epoch 4 stands alone above a
+0.13–0.15 neighbourhood. On the evidence epoch 13 is the better model, and
+`best.pt` still holds epoch 4.
+
+## This is the subset bug again, wearing different clothes
+
+Run 1's harness bug scored 200 predicted images against 700 ground-truth ones
+and scaled AP by the ratio. That was caught and fixed. This is the same
+mistake's second form: a 200-image estimate trusted for a decision finer than
+its precision. The first form corrupted a *number*; this one corrupts a
+*choice*, which is harder to notice because the number it reports is correct —
+it is merely imprecise, and nothing in the output says so.
+
+Worth recording that **the incumbent does not have this problem.** The SAM 3
+arms run `--val-images 700`, the full split. The pipeline being competed
+against selects checkpoints on the whole set; this one did not. That asymmetry
+is in the incumbent's favour and should be stated whenever run 3 is compared
+against it.
+
+## What was changed, and what it does not fix
+
+`lvm/train.py` now writes `last.pt` every epoch alongside `best.pt` (commit
+`6392ade`). This does not repair the selection rule — it makes the rule's
+mistakes recoverable, since both checkpoints can then be rescored on the full
+700-image split where a 0.0012 difference is actually resolvable.
+
+It does not help run 3, which was already in flight when the change landed;
+the module was loaded. Epoch 13's weights are gone. If epoch 4's spike survives
+to epoch 29, run 3's only artefact will be a checkpoint chosen by a coin-flip,
+and the honest report of that outcome is that the run failed to select rather
+than that the model failed to learn.
+
+**Correct fix for run 4:** select on the full 700-image split, as the incumbent
+does. Validation cost rises ~3.5×, which at ~18 min/epoch is the binding
+objection — but selecting on noise makes the cheaper epochs worthless.
