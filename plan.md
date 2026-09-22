@@ -364,3 +364,70 @@ carries no selection bias at all. `best.pt` becomes the secondary reading, and
 the difference between them measures what the bias was worth.
 
 Expected finish ~13:15. This is what run 3 should have been.
+
+## Run 4, result: selection worked, and my experiment design did not
+
+Full 700-image `valid` split, maxDets 300:
+
+| checkpoint | epoch | subset AP | full-split AP | AP50 | AP75 |
+|---|---|---|---|---|---|
+| `best.pt` | 14 | 0.2038 | **0.18743** | 0.4529 | 0.1279 |
+| `last.pt` | 19 | 0.1938 | **0.17922** | 0.4326 | 0.1241 |
+
+### Correction: "last.pt is the unbiased artefact" was too strong
+
+The subset ranked epoch 14 above epoch 19 by 0.0100. The full split confirms it
+by 0.0082 — same direction, comparable size. `best.pt` is genuinely the better
+model and the selection rule got it right.
+
+The distinction I blurred: taking the final epoch is unbiased as a
+*measurement*, because no maximum is taken over a noisy sequence. It is not
+therefore the best *model* — the final epoch of a OneCycle schedule has no
+claim to being the peak. Selection is not broken in general. It fails when the
+margin it arbitrates is smaller than the estimator's noise, which in run 3 was
+0.14 sigma and here was about 2 sigma. At 2 sigma it worked.
+
+Keeping both checkpoints remains correct, because which regime you are in is
+only knowable after the fact.
+
+### The real problem: run 3 and run 4 were confounded
+
+| run | image size | batch | lr | epochs | full-split AP |
+|---|---|---|---|---|---|
+| 1 | 1024 | 4 | 0.005 | 15 | 0.17891 |
+| 2 | 2048 | 2 | **0.005** | 12 | **0.19476** |
+| 3 | 2048 | 2 | **0.0035** | 30 | 0.18899 (void) |
+| 4 | 2048 | 2 | **0.0035** | 20 | 0.18743 |
+
+Between run 2 and run 3 I changed the learning rate from 0.005 to 0.0035 *and*
+the epoch count from 12 to 30, then described the result as a test of longer
+training. It is not. Runs 3 and 4 measure a different learning rate that also
+runs longer, and run 4's 0.0073 loss against run 2 is unattributable between
+the two changes.
+
+Run 2's trajectory argues the confound matters. Its last four epochs read
+0.2057, 0.2117, 0.1948, 0.2073 — still climbing at epoch 12, never plateaued —
+and its subset ceiling of 0.2117 is above anything runs 3 or 4 reached (0.2038
+in run 4, 0.2036 in run 3). The case for longer training looks *better* at
+lr 0.005 than at the rate I actually tested it with.
+
+Run 4 is still a valid measurement of its own configuration, because its
+selection landed at epoch 14, inside the converged region. It is a clean
+negative for (2048 px, lr 3.5e-3, 20 epochs). It is not evidence about epochs.
+
+## Run 5: the clean single-variable test
+
+Launched 13:42 on 22 Sep, `runs/maskrcnn_v5_lr5e3` — run 2's exact
+configuration with epochs 12 -> 20 and nothing else touched:
+
+    --image-size 2048 --batch-size 2 --lr 0.005 --epochs 20 --val-images 200
+
+Against run 2 this isolates epoch count, which is what run 3 was supposed to do
+and did not. Both `last.pt` and `best.pt` will be scored on the full 700.
+Expected finish ~19:15.
+
+Prediction, recorded before the result: run 2 was still improving when it
+stopped, so 20 epochs at lr 0.005 should exceed 0.19476. If it does not, the
+2048 px Mask R-CNN has converged near 0.195 and the remaining 0.043 to SAM 3 is
+not reachable by schedule changes at all — which would settle option (1) and
+promote the pretrained-backbone question to the only live one.
