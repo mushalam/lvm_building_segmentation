@@ -308,3 +308,59 @@ than that the model failed to learn.
 **Correct fix for run 4:** select on the full 700-image split, as the incumbent
 does. Validation cost rises ~3.5×, which at ~18 min/epoch is the binding
 objection — but selecting on noise makes the cheaper epochs worthless.
+
+## Run 3, result: the run did not test its own hypothesis
+
+Full 700-image `valid` split, maxDets 300, same scorer as runs 1 and 2:
+
+| run | config | epochs | full-split AP | AP50 | AP75 |
+|---|---|---|---|---|---|
+| 1 | 1024 px | 12 | 0.17891 | 0.4446 | 0.1099 |
+| 2 | 2048 px | 15 | **0.19476** | 0.4633 | 0.1342 |
+| 3 | 2048 px, lr 3.5e-3 | 30 | 0.18899 | 0.4651 | 0.1196 |
+| — | SAM 3, full fine-tune | 50 | **0.2383** | | |
+
+Read naively, run 3 says longer training makes things slightly worse. That
+reading is wrong, and the reason matters more than the number.
+
+**The checkpoint scored is epoch 4 of 30.** Every epoch that constituted
+"longer training" — the thing under test — was discarded by the selection rule
+before it could be measured. 0.18899 is the score of a five-epoch model that
+happened to land on a favourable subsample. The hypothesis was never tested.
+Eight and a half GPU-hours produced no evidence about the question they were
+spent on.
+
+### The subset reading was inflated by 2.9 sigma, confirmed against truth
+
+Epoch 4 scored **0.2036** on the 200-image selection subset and **0.18899** on
+the full 700. The subset overstated that specific checkpoint by **0.0146**,
+which is 2.9x the standard deviation of the run's own plateau (0.0051, epochs
+13-29). This is no longer an argument from trajectory shape — it is the same
+weights measured both ways, and most of the spike disappears under the honest
+estimator.
+
+It also explains the AP75 column. Run 3 scores 0.1196 there against run 2's
+0.1342, despite its plateau epochs reaching AP75 0.1452 on the subset. The
+retained checkpoint is simply an earlier, blunter model.
+
+### What the plateau was worth is now unknowable
+
+Epochs 13-29 held a subset mean of 0.1930 with sd 0.0051 and produced the run's
+best AP75 (0.1452 at epoch 20) and best AP_small (0.0312, +27% over epoch 4).
+None of those weights exist. `last.pt` landed one commit too late to help the
+run that motivated it.
+
+## Run 4: the corrected repeat
+
+Launched 07:46 on 22 Sep on tvs-gpu-2 GPU 1, `runs/maskrcnn_v4`, 20 epochs at
+2048 px, lr 3.5e-3 — run 3's configuration, truncated to 20 because the plateau
+was reached by epoch 13 and the remaining 17 epochs bought nothing measurable.
+
+The change is not to the model. It is that `last.pt` now exists, so the
+converged model survives whatever the selection rule decides. **Both `last.pt`
+and `best.pt` will be scored on the full 700**, and `last.pt` is the primary
+artefact: taking the final epoch applies no max over a noisy sequence and so
+carries no selection bias at all. `best.pt` becomes the secondary reading, and
+the difference between them measures what the bias was worth.
+
+Expected finish ~13:15. This is what run 3 should have been.
