@@ -1,0 +1,15 @@
+{
+  "AP": 0.17342328182846906,
+  "AP50": 0.43652272017325605,
+  "AP75": 0.10755822762208776,
+  "AP_small": 0.031054592365517754,
+  "AP_medium": 0.24824195940802882,
+  "AP_large": 0.26525040346494483,
+  "AR": 0.2840015752756732,
+  "max_dets": 300,
+  "n_results": 219445,
+  "n_images_scored": 700,
+  "checkpoint": "runs/maskrcnn_v8_scratch/best.pt",
+  "split": "valid",
+  "images": 700
+}

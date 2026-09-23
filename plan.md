@@ -632,3 +632,92 @@ negative or void.
 
 **Run 2 still leads.** Five subsequent runs have not beaten a 12-epoch
 2048 px ResNet-50 with COCO-pretrained heads and no augmentation.
+
+## Run 8, the control: the backbone was the wrong thing to blame
+
+ImageNet-V2 trunk, randomly initialised FPN/RPN/heads — run 6's handicap
+reproduced on the ResNet side, so the two differ only in trunk.
+
+| | run 6 DINOv3 | run 8 ImageNet |
+|---|---|---|
+| subset mean (20 ep) | 0.1326 | **0.1488** |
+| subset last-5 mean | 0.1687 | **0.1754** |
+| subset max | 0.1816 | **0.1888** |
+| max − mean (bias) | 0.0490 | 0.0401 |
+| full-split `best.pt` | 0.17084 | **0.17342** |
+| full-split `last.pt` | **0.16735** | 0.14771 |
+| final train_loss | **1.0750** | 1.2919 |
+
+### On the trunk question: no answer, and that is the answer
+
+The estimators disagree in direction. Subset mean, last-5 mean and max all
+favour ImageNet; the full-split `last.pt` favours DINOv3 by 0.0196.
+
+`last.pt` is not a neutral tiebreaker here. It carries no max-selection bias —
+the defect that fooled the run 7 reading — but it is still a *single epoch*, and
+a single epoch on this task has a standard deviation of roughly 0.03–0.04. One
+draw cannot settle a 0.02 difference any more than run 3's epoch 4 could settle
+0.0007.
+
+So: **the two trunks perform comparably**, and five GPU-hours of DINOv3 plus
+five of control do not establish either as better. That is a real result about
+the hypothesis, not a failure to get one.
+
+### On the real question: head pretraining dominates backbone pretraining
+
+Setting both scratch-head arms against the COCO-head baseline is where the
+signal is:
+
+| configuration | `best.pt` | `last.pt` |
+|---|---|---|
+| COCO trunk + **COCO heads** (run 5) | **0.18963** | **0.18453** |
+| ImageNet trunk + random heads (run 8) | 0.17342 | 0.14771 |
+| DINOv3 trunk + random heads (run 6) | 0.17084 | 0.16735 |
+
+Removing COCO detector pretraining costs **0.016 to 0.037**. Changing the
+backbone between two very different pretraining regimes — supervised ImageNet
+against DINOv3 self-supervised distillation from a 7B ViT — costs **0.003 to
+0.020, in inconsistent directions**.
+
+The component carrying the transfer on this task is the *detector*: FPN, RPN,
+box and mask heads pretrained on COCO instance segmentation. Not the trunk.
+
+### This reframes the project's central hypothesis
+
+`plan.md` ranked "a stronger pretrained backbone" as the only change likely to
+close the 0.044 gap to SAM 3, on the reasoning that runs 1–4 attributed the gap
+to pretraining and scale. The attribution was right; the localisation was
+wrong. The pretraining that matters here is task-matched detector pretraining,
+and swapping the feature extractor does not supply it.
+
+It also explains why SAM 3 wins by more than a backbone swap could recover:
+it brings both a far larger pretrained encoder *and* a pretrained
+detection/segmentation stack, and this evidence says the second is the larger
+term.
+
+**Implication for what to try next.** A stronger *backbone* is now a poor bet.
+The better-motivated directions are ones that add task-matched supervision
+rather than better features:
+
+1. Pretrain the detector on a large public building-footprint corpus (Inria,
+   WHU, Open Cities AI) and fine-tune on IGN. This is the direct analogue of
+   what COCO initialisation is already doing, in-domain.
+2. More IGN labels, if obtainable — the same lever, applied at the target.
+3. Accept the incumbent. Five architectural and schedule variations have not
+   beaten run 2's 0.19476, and the measured reason is now specific rather
+   than hand-waved.
+
+### Standing table
+
+| run | change | full-split AP (best / last) |
+|---|---|---|
+| 1 | 1024 px | 0.17891 |
+| 2 | 2048 px, 12 ep | **0.19476** |
+| 3 | lr 3.5e-3, 30 ep | 0.18899 (void) |
+| 4 | lr 3.5e-3, 20 ep | 0.18743 / 0.17922 |
+| 5 | lr 5e-3, 20 ep | 0.18963 / 0.18453 |
+| 6 | DINOv3 trunk, random heads | 0.17084 / 0.16735 |
+| 7 | + D4 augmentation | 0.19202 / 0.14819 |
+| 8 | ImageNet trunk, random heads (control) | 0.17342 / 0.14771 |
+
+Run 2 leads after six subsequent runs.
