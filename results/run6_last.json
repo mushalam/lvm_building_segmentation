@@ -1,0 +1,15 @@
+{
+  "AP": 0.16734684147640203,
+  "AP50": 0.41422634481112025,
+  "AP75": 0.10592223515372885,
+  "AP_small": 0.02448149398953261,
+  "AP_medium": 0.24042276586702785,
+  "AP_large": 0.2758211494320146,
+  "AR": 0.27468306953716903,
+  "max_dets": 300,
+  "n_results": 182003,
+  "n_images_scored": 700,
+  "checkpoint": "runs/maskrcnn_v6_dinov3t/last.pt",
+  "split": "valid",
+  "images": 700
+}

@@ -496,3 +496,59 @@ Isolates augmentation as a single variable against run 5's 0.18963.
 
 Between them these separate the two live hypotheses -- better features, and
 more effective data -- rather than confounding them as runs 3 and 4 did.
+
+## Run 6, result: DINOv3 loses, and the loss says why the result is ambiguous
+
+DINOv3 ConvNeXt-Tiny trunk, run 5's configuration otherwise. Full 700-image
+split:
+
+| run | trunk | checkpoint | full-split AP | AP50 |
+|---|---|---|---|---|
+| 5 | ResNet-50 (COCO detector) | best, ep 12 | **0.18963** | 0.4626 |
+| 6 | DINOv3 ConvNeXt-Tiny | best, ep 16 | 0.17084 | 0.4238 |
+| 6 | DINOv3 ConvNeXt-Tiny | last, ep 19 | 0.16735 | 0.4142 |
+
+DINOv3 loses by **0.0188**. Under the rule recorded in `lvm/backbones.py` before
+the run started, a win would have been conclusive a fortiori and a loss
+ambiguous. This is the loss, so it is ambiguous, and the training loss shows the
+ambiguity is real rather than a formality.
+
+### Run 6 underfit where run 5 overfit
+
+| | final train_loss | final val AP |
+|---|---|---|
+| run 5 (ResNet-50, COCO heads) | **0.8842** | 0.1971 |
+| run 6 (DINOv3, random heads) | **1.0750** | 0.1765 |
+
+Run 5 ended 18% *better* fitted on the training set. Run 6 never reached the
+regime where run 5 started losing generalisation — it is still underfit at
+epoch 19, which is exactly what a detector whose FPN, RPN and both heads began
+from random initialisation should look like after 20 epochs on 2,451 images.
+
+So the 0.0188 deficit has two candidate causes that this experiment cannot
+separate: DINOv3 features may genuinely be worse for this task, or 20 epochs
+may simply be too few to train a detection stack from scratch. The opening
+epochs make the second reading concrete — run 6 started at AP 0.0356 against
+the baseline's 0.1393, a handicap worth more than the final gap.
+
+### What settles it
+
+`--scratch-heads` (commit `4f34857`, verified to carry ImageNet-V2 weights
+318/318 while initialising FPN, RPN and heads randomly) reproduces exactly that
+handicap on the ResNet side. An ImageNet-trunk arm with random heads, trained
+for the same 20 epochs, differs from run 6 only in which trunk it carries, and
+its comparison against run 6 is clean in both directions.
+
+It is queued behind run 7, not ahead of it. Run 7 attacks the overfitting run 5
+demonstrated and could actually improve the model; the control only interprets a
+result that is already negative. Given a brief to build something better, the
+improvement attempt earns the GPU first.
+
+### Honest position on the pretraining hypothesis
+
+`plan.md` ranked "a stronger pretrained backbone" as the only change likely to
+close the 0.044 gap to SAM 3. That hypothesis is **not** refuted by run 6 — but
+it is not supported either, and one attempt at it has now cost five GPU-hours
+and returned an uninterpretable number. The honest summary is that the question
+is still open and the experiment that was supposed to answer it needs its
+control before it says anything at all.
