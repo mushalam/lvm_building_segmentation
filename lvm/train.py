@@ -116,6 +116,11 @@ def main():
                          "a 41px building at stride 4 gives ~10x10 features "
                          "whatever the mask grid. Upsampling the input is the "
                          "direct way to give small objects more feature cells")
+    ap.add_argument("--init-from",
+                    help="checkpoint to initialise weights from before "
+                         "training, for staged pretraining. Architecture must "
+                         "match; anchors and image size are rebuilt from this "
+                         "run's flags, not inherited")
     ap.add_argument("--scratch-heads", action="store_true",
                     help="ResNet-50 control for the DINOv3 arms: ImageNet "
                          "trunk, randomly initialised FPN/RPN/heads")
@@ -155,6 +160,19 @@ def main():
                         scratch_heads=args.scratch_heads).to(device)
     ntr = sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e6
     print(f"backbone {args.backbone}: {ntr:.1f}M trainable params", flush=True)
+    if args.init_from:
+        ck = torch.load(args.init_from, map_location="cpu", weights_only=False)
+        sd = ck["model"] if "model" in ck else ck
+        missing, unexpected = model.load_state_dict(sd, strict=False)
+        # strict=False would silently tolerate a wholesale mismatch, which is
+        # the failure this stage is most exposed to: a checkpoint that loads
+        # nothing looks exactly like one that loads everything.
+        assert not unexpected, f"unexpected keys in {args.init_from}: {unexpected[:5]}"
+        assert len(missing) < 0.01 * len(sd), (
+            f"{len(missing)} of {len(sd)} keys missing -- architectures differ")
+        print(f"  initialised from {args.init_from} "
+              f"(epoch {ck.get('epoch', '?')}, {len(sd)} tensors, "
+              f"{len(missing)} missing)", flush=True)
     n_tr = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"model: {sum(p.numel() for p in model.parameters())/1e6:.0f}M parameters, "
           f"{n_tr/1e6:.0f}M trainable")

@@ -6,3 +6,8 @@ runs/*/checkpoints/
 runs/*/*.pt
 *.pt
 .DS_Store
+
+# Local corpora for this project only. Never written into the sam3ft-fine
+# tree: lvm_EOSC's 'data' is a symlink into project 1, so downloads must land
+# here instead.
+data_local/
