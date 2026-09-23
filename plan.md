@@ -721,3 +721,79 @@ rather than better features:
 | 8 | ImageNet trunk, random heads (control) | 0.17342 / 0.14771 |
 
 Run 2 leads after six subsequent runs.
+
+## Runs A+B: in-domain detector pretraining is a null result
+
+Run 8 concluded that task-matched *detector* pretraining, not backbone
+pretraining, carries transfer here. This tests that directly: stage A
+pretrains the whole detector on a public building corpus, stage B fine-tunes
+on IGN with run 2's exact configuration. The intermediate stage is the only
+added variable.
+
+**Stage A** (`runs/pretrainA_public`): 5,932 images, 89k instances, 1024 px,
+10 epochs. Reached AP 0.4056 on its own validation — far above anything on
+IGN, because it is a far easier problem (13.2 instances/tile against 77.0).
+
+**Stage B** (`runs/stageB_ign`): IGN, 2048 px, lr 5e-3, batch 2, 12 epochs,
+initialised from stage A's `last.pt` (432 tensors, 0 missing).
+
+| | stage B | run 2 |
+|---|---|---|
+| **full-split `best.pt`** | **0.19324** | **0.19476** |
+| full-split `last.pt` | 0.17606 | — (predates the fix) |
+| subset mean (12 ep) | 0.1757 | 0.1796 |
+| subset sd | 0.0278 | 0.0219 |
+| subset max | 0.2105 | 0.2117 |
+| max − mean (bias) | 0.0348 | 0.0321 |
+| first epoch above 0.20 | **5** | 8 |
+
+**Verdict: no gain.** 0.19324 against 0.19476 is a deficit of 0.0015, well
+inside noise, and the selection bias is near-identical between the two runs
+(0.0348 vs 0.0321) so the `best.pt` comparison is fair here in a way run 7's
+was not. Every non-max estimator agrees the two are level or run 2 marginally
+ahead.
+
+### A window-selected claim I made and had to withdraw
+
+Mid-run I reported stage B "ahead by 0.044 at matched epochs 5–7" and called
+it the first thing in eight runs to look better than run 2. Over the full 12
+epochs the means are 0.1757 against 0.1796 — run 2 ahead. I had picked the
+three epochs where stage B plateaued and run 2 happened to dip. That is the
+maximum-selection error in a different costume: choosing the comparison window
+after seeing the data. The full-run mean should have been computed first.
+
+### What does survive
+
+Stage B passed 0.20 at **epoch 5**; run 2 needed **epoch 8**. Same endpoint,
+reached in roughly half the epochs, with marginally lower training loss at
+matched epochs (1.2104 vs 1.2280 at epoch 8). In-domain detector pretraining
+buys *convergence speed*, not final accuracy, on this corpus.
+
+### Why "on this corpus" carries weight
+
+The public set is task-matched but not domain-matched: humanitarian and
+conflict-monitoring imagery (Tripoli, Kherson, Donetsk, Mekele, Mykolaiv,
+Kharkiv) at 13.2 instances/tile against IGN's 77.0, and its own validation AP
+of 0.41 against IGN's 0.19 shows how much easier its scenes are. The early
+epochs are consistent with the detector unlearning sparse-scene priors: stage
+B trailed run 2 at epochs 0–4, then overtook it.
+
+So the hypothesis is **not** refuted. What is shown is that a 5.8x density
+mismatch costs whatever the task match gains. A domain-matched corpus —
+SpaceNet 2's Paris AOI, or Inria's European cities — remains the version of
+this experiment worth running, and neither was obtainable in instance format
+today: both HuggingFace SpaceNet 2 copies are GeoBench "tortilla" packaging
+carrying semantic labels, and Inria is semantic by construction.
+
+### Standing table
+
+| run | change | full-split AP (best / last) |
+|---|---|---|
+| 2 | 2048 px, 12 ep | **0.19476** |
+| 5 | lr 5e-3, 20 ep | 0.18963 / 0.18453 |
+| 6 | DINOv3 trunk | 0.17084 / 0.16735 |
+| 7 | + D4 augmentation | 0.19202 / 0.14819 |
+| 8 | ImageNet trunk, random heads | 0.17342 / 0.14771 |
+| A+B | in-domain detector pretraining | 0.19324 / 0.17606 |
+
+Run 2 leads after seven subsequent runs.
