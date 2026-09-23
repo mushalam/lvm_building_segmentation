@@ -552,3 +552,83 @@ it is not supported either, and one attempt at it has now cost five GPU-hours
 and returned an uninterpretable number. The honest summary is that the question
 is still open and the experiment that was supposed to answer it needs its
 control before it says anything at all.
+
+## Run 7, result: D4 augmentation hurts at this schedule, and nearly fooled me
+
+Run 5's configuration plus `--d4`, single variable. Full 700-image split:
+
+| run | checkpoint | epoch | full-split AP |
+|---|---|---|---|
+| 5 (no aug) | best | 12 | 0.18963 |
+| 5 (no aug) | last | 19 | **0.18453** |
+| 7 (D4) | best | 7 | **0.19202** |
+| 7 (D4) | last | 19 | 0.14819 |
+
+Read off `best.pt` alone, D4 wins by 0.0024 and the augmentation hypothesis is
+confirmed. That reading is wrong, and the reason is a selection artefact this
+project has now met three times in different clothing.
+
+### Comparing maxima across runs of different variance is not a fair test
+
+|  | run 5 | run 7 |
+|---|---|---|
+| subset mean | **0.1795** | 0.1393 |
+| subset range | 0.0650 | **0.1188** |
+| subset sd | 0.0213 | **0.0270** |
+| max − mean | 0.0248 | **0.0731** |
+
+Run 7's validation sequence is nearly twice as wide, so the maximum over 20
+epochs sits three times further above its own mean. `best.pt` does not measure
+"the better model", it measures "the luckiest draw", and a noisier run draws
+luckier. The 0.0024 advantage is entirely inside that difference in bias.
+
+Every estimator that is not a maximum agrees, and not narrowly:
+
+- subset mean over all 20 epochs: 0.1795 vs **0.1393**
+- subset mean over the last 5: 0.1992 vs **0.1478**
+- full-split `last.pt`: 0.18453 vs **0.14819**
+
+D4 loses by 0.036 on the like-for-like final model. **Augmentation made this
+model worse at this schedule.**
+
+### The prediction, and where I misread it
+
+Recorded before the result: run 7 would finish below 0.18963 with a final
+train_loss of 1.35–1.40. Final train_loss came in at **1.3663** and the
+finishing model at **0.14819**. Both halves held.
+
+I briefly called the prediction refuted on first seeing `best.pt` at 0.19202,
+before `last.pt` had scored. That was the error the whole `last.pt` mechanism
+exists to prevent, made by the person who added it.
+
+### What this does and does not establish
+
+Run 7 ended at train_loss 1.3663 against run 5's 0.8842, so it is genuinely far
+from the memorisation regime — augmentation did the thing it is supposed to do
+to the training loss. But its validation AP is *both* low and unstable to the
+last epoch (final five: 0.1431, 0.1455, 0.1486, 0.1672, 0.1349), which is not
+the shape of a model that is merely underfit and climbing steadily toward a
+better ceiling.
+
+So "D4 needs a longer schedule" remains a live hypothesis and is **not**
+supported by this run. The honest position is narrower: at 2,451 base tiles,
+lr 5e-3, batch 2 and 20 epochs, an 8x augmented training distribution produces
+a noisier, worse detector. Whether 40-60 epochs reverses that is untested, and
+it is the obvious next experiment — but it would be the third time this project
+has spent GPU-hours on a schedule hypothesis, and runs 3, 4 and 5 all returned
+negative or void.
+
+### Standing table
+
+| run | change | full-split AP (last.pt where available) |
+|---|---|---|
+| 1 | 1024 px | 0.17891 |
+| 2 | 2048 px, 12 ep | **0.19476** (best) |
+| 3 | lr 3.5e-3, 30 ep | 0.18899 (void — ep-4 checkpoint) |
+| 4 | lr 3.5e-3, 20 ep | 0.18743 best / 0.17922 last |
+| 5 | lr 5e-3, 20 ep | 0.18963 best / 0.18453 last |
+| 6 | DINOv3 trunk | 0.17084 best / 0.16735 last — ambiguous, control pending |
+| 7 | + D4 augmentation | 0.19202 best / 0.14819 last |
+
+**Run 2 still leads.** Five subsequent runs have not beaten a 12-epoch
+2048 px ResNet-50 with COCO-pretrained heads and no augmentation.
