@@ -858,3 +858,60 @@ What remains untested is **geography**. The corpus is Tripoli, Kherson,
 Donetsk, Mekele; the target is dense French urban fabric. That variable cannot
 be isolated with the data obtainable today, and it is the one the evidence now
 points to by elimination.
+
+## Run B3: the matched-schedule test, and the end of this line of enquiry
+
+B2 was confounded against run 2 by schedule length (12 epochs vs run 2's 12 but
+with B2 still climbing at its last). **Run 5 is the exact same configuration as
+B3 without the pretraining stage** — 20 epochs, lr 5e-3, 2048 px, batch 2 — so
+this is the single-variable test the earlier comparisons could not be.
+
+| | B3 (dense-pretrained) | run 5 (no pretraining) |
+|---|---|---|
+| subset mean (20 ep) | **0.1845** | 0.1795 |
+| subset max | **0.2106** | 0.2043 |
+| max − mean (bias) | 0.0261 | 0.0248 |
+| **full-split `best.pt`** | **0.19537** | 0.18963 |
+| full-split `last.pt` | 0.18141 | **0.18453** |
+
+Selection bias is near-identical (0.0261 vs 0.0248), so unlike run 7 the
+`best.pt` comparison is a fair one. Two of three estimators favour pretraining
+(+0.0057 on `best.pt`, +0.0050 on the mean); one favours run 5 (−0.0031 on
+`last.pt`).
+
+**Verdict: a small, real, but marginal benefit — about +0.005 AP at matched
+schedule.** Not the step change the hypothesis predicted, and small enough that
+a third seed could reverse the sign on any individual estimator.
+
+### B3 is the best lvm_EOSC result, by an amount that means nothing
+
+0.19537 against run 2's 0.19476 is +0.0006. After nine runs this project has
+produced nothing that beats a 12-epoch 2048 px ResNet-50 with COCO heads by a
+margin worth reporting. That is the honest headline.
+
+### What the whole pretraining investigation established
+
+| variant | pretraining | schedule | full-split |
+|---|---|---|---|
+| run 2 | COCO only | 12 ep | 0.19476 |
+| run 5 | COCO only | 20 ep | 0.18963 |
+| A+B | + full public corpus | 12 ep | 0.19324 |
+| A2+B2 | + dense subset | 12 ep | 0.19050 |
+| **B3** | **+ dense subset** | **20 ep** | **0.19537** |
+
+Three findings, in decreasing confidence:
+
+1. **Pretraining reliably buys convergence speed.** Both pretrained arms jumped
+   at epoch 5 where the unpretrained runs needed 8–9. This reproduced across
+   two different pretraining corpora.
+2. **At matched schedule it buys roughly +0.005 AP.** Real but marginal.
+3. **Neither density nor volume explains why it is not more.** Both were tested
+   directly. Geography remains, untested, and is where the evidence points by
+   elimination: the corpus is Tripoli, Kherson, Donetsk and Mekele; the target
+   is dense French urban fabric.
+
+**Recommendation: stop here.** The remaining lever needs a domain-matched
+instance-segmentation corpus of European urban imagery, which is not obtainable
+from the sources checked (SpaceNet 2's HuggingFace copies carry semantic labels;
+Inria is semantic by construction). Without that, further variants of this
+experiment will keep returning differences of ±0.005.
