@@ -797,3 +797,64 @@ carrying semantic labels, and Inria is semantic by construction.
 | A+B | in-domain detector pretraining | 0.19324 / 0.17606 |
 
 Run 2 leads after seven subsequent runs.
+
+## Runs A2+B2: density was not the binding constraint
+
+Runs A+B attributed their null result to a density mismatch — the public
+corpus averages 13.2 instances/tile against IGN's 77.0. This tests that by
+filtering the corpus to tiles with ≥20 instances (1,465 tiles, mean 36.9) and
+repeating the two stages unchanged.
+
+| variant | pretraining corpus | full-split AP |
+|---|---|---|
+| run 2 | none (COCO only) | **0.19476** |
+| A+B | full public, 5,932 tiles @ 13.2 inst/tile | 0.19324 |
+| A2+B2 | dense subset, 1,465 tiles @ 36.9 inst/tile | 0.19050 |
+
+**Filtering toward the target's density made it worse.** The hypothesis is not
+supported: discarding 75% of the pretraining corpus cost more than matching its
+density gained. Whatever limits in-domain pretraining here, it is not scene
+density.
+
+### A design error, caught and corrected mid-experiment
+
+The first A2 matched *gradient steps* rather than epochs — 40 epochs on a
+corpus a quarter the size, to equal stage A's 14,830 steps. On 1,465 tiles that
+is 40 passes over the same data, and it overfit hard: peak 0.3880 at epoch 6,
+then monotone decline to 0.3443 by epoch 39.
+
+The chain would then have handed stage B2 that final checkpoint — the single
+most degraded one of the run — and B2 would have measured overfitting while
+being reported as a density result. The `last.pt`-not-`best.pt` rule that was
+right for stage A (last.pt 0.3941 against a 0.4056 peak, barely degraded) was
+wrong here.
+
+Corrected by matching **epochs** instead: A2 rerun at 10 epochs, ending at
+0.3790 against stage A's 0.3941 — comparable representations. Data volume
+remains a confound, inherent to filtering and not removable without a larger
+dense corpus.
+
+### Convergence speed tracks pretraining volume
+
+| run | pretraining tiles | peak epoch | full-split AP |
+|---|---|---|---|
+| stage B | 5,932 | **5** | 0.19324 |
+| run 2 | 0 | 9 | 0.19476 |
+| B2 | 1,465 | **11 (last)** | 0.19050 |
+
+More pretraining data, earlier peak. B2 peaked at its *final* epoch and was
+still climbing, so 0.19050 is a lower bound in a way the other two are not —
+both of those peaked mid-schedule and then declined. A longer B2 might close
+the gap, which is the one loose end here.
+
+### Where this leaves the hypothesis
+
+Three variants now sit within 0.004 of each other (0.19050, 0.19324, 0.19476)
+and none beats the COCO-only baseline. In-domain detector pretraining from
+this corpus does not help, and the two explanations available for that — wrong
+density, wrong volume — have now each been tested and neither rescues it.
+
+What remains untested is **geography**. The corpus is Tripoli, Kherson,
+Donetsk, Mekele; the target is dense French urban fabric. That variable cannot
+be isolated with the data obtainable today, and it is the one the evidence now
+points to by elimination.
