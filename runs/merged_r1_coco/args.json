@@ -1,0 +1,15 @@
+{
+  "data": "data_local/ign_building_merged/building",
+  "out": "runs/merged_r1_coco",
+  "epochs": 6,
+  "batch_size": 2,
+  "lr": 0.005,
+  "workers": 10,
+  "max_dets": 400,
+  "image_size": 2048,
+  "init_from": null,
+  "scratch_heads": false,
+  "d4": false,
+  "backbone": "resnet50",
+  "val_images": 200
+}
