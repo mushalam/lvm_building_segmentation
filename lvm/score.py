@@ -16,6 +16,7 @@ import numpy as np
 import torch
 from pycocotools import mask as mask_util
 
+from lvm.boundary import boundary_metrics, sample_ids
 from lvm.data import BuildingDataset, collate
 from lvm.evaluate import load_gt, summarise
 from lvm.train import build_model
@@ -34,6 +35,12 @@ def main():
     ap.add_argument("--batch-size", type=int, default=2)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--out")
+    ap.add_argument("--boundary-images", type=int, default=250,
+                    help="seeded sample for mask/boundary IoU, as the SAM 3 "
+                         "incumbent draws it; 0 skips them")
+    ap.add_argument("--sample-only", action="store_true",
+                    help="infer only on the boundary sample. AP is then a "
+                         "subset AP, labelled as such -- for quick CPU checks")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -48,9 +55,13 @@ def main():
     model.load_state_dict(ck["model"]); model.eval()
 
     ds = BuildingDataset(args.data, args.split, train=False)
+    gt = load_gt(str(Path(args.data) / args.split / "_annotations.coco.json"))
+    sample = sample_ids(gt, args.boundary_images) if args.boundary_images else []
+    if args.sample_only:
+        keep = set(sample)
+        ds.index = [i for i in ds.index if i["id"] in keep]
     dl = torch.utils.data.DataLoader(ds, batch_size=args.batch_size, shuffle=False,
                                      num_workers=args.workers, collate_fn=collate)
-    gt = load_gt(str(Path(args.data) / args.split / "_annotations.coco.json"))
 
     results = []
     for n, (imgs, targets) in enumerate(dl):
@@ -70,9 +81,13 @@ def main():
     # missed buildings count against recall.
     m = summarise(gt, results, max_dets=args.max_dets,
                   img_ids=[i["id"] for i in ds.index])
+    if sample:
+        m.update(boundary_metrics(gt, results, sample))
     m["checkpoint"] = args.ckpt
     m["split"] = args.split
     m["images"] = len(ds)
+    if args.sample_only:
+        m["note"] = f"AP is over the {len(ds)}-image boundary sample, not the split"
     print(json.dumps(m, indent=2))
     if args.out:
         Path(args.out).write_text(json.dumps(m, indent=2))
