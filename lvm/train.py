@@ -60,6 +60,10 @@ def build_model(detections_per_img=400, trainable_layers=5, image_size=1024,
         weights=None if scratch_heads else "DEFAULT",
         weights_backbone="DEFAULT" if scratch_heads else None,
         box_detections_per_img=detections_per_img,
+        # torchvision drops detections scoring below 0.05 by default: a
+        # confidence threshold inside the model, which the no-threshold
+        # protocol in lvm.evaluate never saw. maxDets does the capping.
+        box_score_thresh=0.0,
         rpn_post_nms_top_n_train=3000, rpn_post_nms_top_n_test=3000,
         rpn_pre_nms_top_n_train=4000, rpn_pre_nms_top_n_test=4000,
         box_batch_size_per_image=512, rpn_batch_size_per_image=256,
@@ -95,10 +99,12 @@ def validate(model, loader, gt, device, max_dets):
                 rle["counts"] = rle["counts"].decode("ascii")
                 results.append({"image_id": iid, "category_id": 1,
                                 "segmentation": rle, "score": float(s)})
-    # img_ids defaults to the ids present in `results`, so a subset validation
-    # cannot be scored against the full ground truth. Run 1 shipped that bug for
-    # its whole training and every metric came out scaled by 200/700.
-    return summarise(gt, results, max_dets=max_dets)
+    # Score exactly the images validated. Run 1 scored a 200-image subset
+    # against all 700 and every metric came out scaled by 200/700; leaving
+    # img_ids to default to the ids in `results` has the opposite defect -- a
+    # tile with no detections drops out along with the buildings it missed.
+    img_ids = [i["id"] for i in loader.dataset.index]
+    return summarise(gt, results, max_dets=max_dets, img_ids=img_ids)
 
 
 def main():

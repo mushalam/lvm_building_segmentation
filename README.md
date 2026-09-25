@@ -113,10 +113,11 @@ data/ign_building_v2/building/
 ## Usage
 
 Check the scorer first. It scores ground truth against itself and must return
-1.0 on every metric, including the case where only some images are scored:
+1.0 on every metric (about 0.99 when a split contains labels whose masks are
+empty, which it reports):
 
 ```
-python -m lvm.evaluate
+python -m lvm.evaluate data/ign_building_v2/building/valid/_annotations.coco.json
 ```
 
 Train the run 2 configuration (the strongest single-stage setup):

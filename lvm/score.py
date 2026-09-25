@@ -66,7 +66,10 @@ def main():
         if n % 50 == 0:
             print(f"  {n * args.batch_size}/{len(ds)} images", flush=True)
 
-    m = summarise(gt, results, max_dets=args.max_dets)
+    # Every image in the split, including any with no detections: their
+    # missed buildings count against recall.
+    m = summarise(gt, results, max_dets=args.max_dets,
+                  img_ids=[i["id"] for i in ds.index])
     m["checkpoint"] = args.ckpt
     m["split"] = args.split
     m["images"] = len(ds)

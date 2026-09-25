@@ -106,13 +106,30 @@ def self_test():
     gt = load_gt(gt_file)
     results = []
     for ann in gt.dataset["annotations"]:
+        # annToRLE: loadRes accepts only RLE, and ground truth may be polygons
+        # (the merged IGN set is). Predictions are always RLE, so this matches
+        # what real scoring submits.
+        rle = gt.annToRLE(ann)
+        if isinstance(rle["counts"], bytes):
+            rle["counts"] = rle["counts"].decode("ascii")
         results.append({"image_id": ann["image_id"], "category_id": ann["category_id"],
-                        "segmentation": ann["segmentation"], "score": 1.0})
+                        "segmentation": rle, "score": 1.0})
     m = summarise(gt, results, max_dets=400)
     print(f"perfect-prediction self-test on {gt_file}")
     for k, v in m.items():
         print(f"  {k:12s} {v}")
-    ok = m["AP"] > 0.99 and m["AP75"] > 0.99
+    # A 1-px sliver along a tile edge (bbox [0, 0, 13, 1]) rasterises to an
+    # empty mask, which nothing can match, so recall 1.0 is unreachable and the
+    # last of COCO's 101 recall points scores 0: a perfect prediction then caps
+    # at 100/101. The merged IGN set has 43 such labels in valid. Real models
+    # have ~0 precision at recall 1.0 anyway, so real scores are unaffected.
+    from pycocotools import mask as mask_util
+    empty = sum(int(mask_util.area(r["segmentation"])) == 0 for r in results)
+    floor = 0.99
+    if empty:
+        print(f"  {empty} ground-truth masks are empty; expecting AP ~100/101")
+        floor = 0.985
+    ok = m["AP"] > floor and m["AP75"] > floor
     print("  PASS" if ok else "  FAIL — the harness cannot score a perfect prediction")
     return 0 if ok else 1
 

@@ -105,6 +105,7 @@ def build_timm_maskrcnn(backbone, anchor_sizes, detections_per_img=400,
         rpn_anchor_generator=anchor_gen, rpn_head=rpn_head,
         box_head=box_head, mask_head=mask_head,
         box_detections_per_img=detections_per_img,
+        box_score_thresh=0.0,  # see lvm.train.build_model
         rpn_post_nms_top_n_train=3000, rpn_post_nms_top_n_test=3000,
         rpn_pre_nms_top_n_train=4000, rpn_pre_nms_top_n_test=4000,
         box_batch_size_per_image=512, rpn_batch_size_per_image=256,
