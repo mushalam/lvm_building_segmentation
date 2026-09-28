@@ -1,0 +1,95 @@
+=== training exited 2026-09-26 00:52 ===
+  ep5 19800/19804 loss 1.518 lr 2.00e-08
+epoch 5: AP 0.1725 AP50 0.3975 AP75 0.1267 AP_small 0.0120 (105.1 min)
+done. best AP 0.1798
+=== runs/merged_r1_coco/best.pt on data/ign_building_v2/building/test -> runs/merged_r1_coco/score_v2test_best.json  00:52 ===
+  "AP_large": 0.21622314250031704,
+  "AR": 0.26717958341152187,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.6874512186702197,
+  "matched_mask_iou": 0.6952029458768239,
+  "boundary_matched": 11529,
+  "boundary_match_rate": 0.5577918622091054,
+  "boundary_images": 250,
+  "checkpoint": "runs/merged_r1_coco/best.pt",
+  "split": "test",
+  "images": 1402
+}
+=== runs/merged_r1_coco/last.pt on data/ign_building_v2/building/test -> runs/merged_r1_coco/score_v2test_last.json  01:15 ===
+  "AP_large": 0.23605231653856196,
+  "AR": 0.2803931319196847,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.6883537468923795,
+  "matched_mask_iou": 0.6963280421443891,
+  "boundary_matched": 12065,
+  "boundary_match_rate": 0.5837244182108472,
+  "boundary_images": 250,
+  "checkpoint": "runs/merged_r1_coco/last.pt",
+  "split": "test",
+  "images": 1402
+}
+=== runs/merged_r1_coco/best.pt on data_local/ign_building_merged/building/test -> runs/merged_r1_coco/score_mergedtest_best.json  01:38 ===
+  "AP_large": 0.2583547063695418,
+  "AR": 0.2802121080645063,
+  "max_dets": 300,
+  "n_results": 4529179,
+  "n_images_scored": 11323,
+  "boundary_iou": 0.6930883421294058,
+  "matched_mask_iou": 0.7006923086547621,
+  "boundary_matched": 3865,
+  "boundary_match_rate": 0.5628367554973059,
+  "boundary_images": 250,
+  "checkpoint": "runs/merged_r1_coco/best.pt",
+  "split": "test",
+  "images": 11323
+}
+=== runs/maskrcnn_v2_hires/best.pt on data/ign_building_v2/building/test -> runs/merged_r1_coco/baseline_run2_v2test.json  04:26 ===
+  "AP_large": 0.338594590630322,
+  "AR": 0.3186423343966973,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.7099920352697523,
+  "matched_mask_iou": 0.7161769969936369,
+  "boundary_matched": 12964,
+  "boundary_match_rate": 0.6272195074749625,
+  "boundary_images": 250,
+  "checkpoint": "runs/maskrcnn_v2_hires/best.pt",
+  "split": "test",
+  "images": 1402
+}
+=== runs/stageB3_long/best.pt on data/ign_building_v2/building/test -> runs/merged_r1_coco/baseline_B3_v2test.json  04:49 ===
+  "AP_large": 0.33047806896861365,
+  "AR": 0.3177706886845562,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.7084281821850841,
+  "matched_mask_iou": 0.714750091960874,
+  "boundary_matched": 12820,
+  "boundary_match_rate": 0.620252552131211,
+  "boundary_images": 250,
+  "checkpoint": "runs/stageB3_long/best.pt",
+  "split": "test",
+  "images": 1402
+}
+=== runs/maskrcnn_v2_hires/best.pt on data/ign_building_v2/building/valid -> runs/merged_r1_coco/baseline_run2_v2valid_fixed.json  05:12 ===
+  "AP_large": 0.3132572202988467,
+  "AR": 0.31274097967144243,
+  "max_dets": 300,
+  "n_results": 280000,
+  "n_images_scored": 700,
+  "boundary_iou": 0.7076892698663784,
+  "matched_mask_iou": 0.7143418218747112,
+  "boundary_matched": 12627,
+  "boundary_match_rate": 0.6306247815012735,
+  "boundary_images": 250,
+  "checkpoint": "runs/maskrcnn_v2_hires/best.pt",
+  "split": "valid",
+  "images": 700
+}
+=== all scoring done 2026-09-26 05:24 ===

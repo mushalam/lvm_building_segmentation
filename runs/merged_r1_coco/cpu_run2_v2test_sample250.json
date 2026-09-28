@@ -1,0 +1,21 @@
+{
+  "AP": 0.19963331409000956,
+  "AP50": 0.4782077711414487,
+  "AP75": 0.13486131162086276,
+  "AP_small": 0.03969894944921917,
+  "AP_medium": 0.2845915556628581,
+  "AP_large": 0.3314174769139661,
+  "AR": 0.31314045188446465,
+  "max_dets": 300,
+  "n_results": 100000,
+  "n_images_scored": 250,
+  "boundary_iou": 0.7099317818600669,
+  "matched_mask_iou": 0.7161141767198848,
+  "boundary_matched": 12973,
+  "boundary_match_rate": 0.627654942183947,
+  "boundary_images": 250,
+  "checkpoint": "runs/maskrcnn_v2_hires/best.pt",
+  "split": "test",
+  "images": 250,
+  "note": "AP is over the 250-image boundary sample, not the split"
+}
