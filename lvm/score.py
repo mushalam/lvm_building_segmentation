@@ -45,9 +45,11 @@ def main():
     ap.add_argument("--sample-only", action="store_true",
                     help="infer only on the boundary sample. AP is then a "
                          "subset AP, labelled as such -- for quick CPU checks")
-    ap.add_argument("--tta", choices=["none", "d4"], default="none",
+    ap.add_argument("--tta", choices=["none", "d4", "d4-scores"], default="none",
                     help="d4: fuse the 8 quarter-turn/mirror views of each "
-                         "tile (lvm.tta). 8x the inference cost")
+                         "tile, averaging masks and scores (lvm.tta); "
+                         "d4-scores: keep the base masks, average only scores. "
+                         "8x the inference cost")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -75,8 +77,9 @@ def main():
 
     results = []
     for n, (imgs, targets) in enumerate(dl):
-        if args.tta == "d4":
-            outs = [predict_d4(model, i.to(device)) for i in imgs]
+        if args.tta != "none":
+            fuse = "scores" if args.tta == "d4-scores" else "masks"
+            outs = [predict_d4(model, i.to(device), fuse=fuse) for i in imgs]
         else:
             outs = model([i.to(device) for i in imgs])
         for t, o in zip(targets, outs):

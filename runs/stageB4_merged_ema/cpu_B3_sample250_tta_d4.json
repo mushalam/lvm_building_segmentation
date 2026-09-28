@@ -1,0 +1,23 @@
+{
+  "AP": 0.1919709082724714,
+  "AP50": 0.470737825713087,
+  "AP75": 0.11922635360211817,
+  "AP_small": 0.03727027642635455,
+  "AP_medium": 0.2719184432175303,
+  "AP_large": 0.33556064505338384,
+  "AR": 0.31278726595384393,
+  "max_dets": 300,
+  "n_results": 100000,
+  "n_images_scored": 250,
+  "boundary_iou": 0.7045735677039805,
+  "matched_mask_iou": 0.7111010274301491,
+  "boundary_matched": 13151,
+  "boundary_match_rate": 0.6362668730949731,
+  "boundary_images": 250,
+  "checkpoint": "runs/stageB3_long/best.pt",
+  "weights": "model",
+  "tta": "d4",
+  "split": "test",
+  "images": 250,
+  "note": "AP is over the 250-image boundary sample, not the split"
+}

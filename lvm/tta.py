@@ -69,12 +69,23 @@ def boxes_from_masks(masks):
 
 
 @torch.no_grad()
-def predict_d4(model, img, mask_thresh=0.5, match_iou=0.5, min_votes=1, ops=D4_OPS):
+def predict_d4(model, img, mask_thresh=0.5, match_iou=0.5, min_votes=1, ops=D4_OPS,
+               fuse="masks"):
     """One (C,H,W) image through all views of `ops`, fused.
 
-    Returns a torchvision-style dict: masks (N,1,H,W) fused probabilities,
-    scores, boxes, labels, votes.
+    fuse="masks" averages matched mask probabilities and scores, as the SAM 3
+    original does. fuse="scores" keeps the base pass's masks and averages only
+    the scores. Mask R-CNN is not self-consistent across views the way SAM 3
+    is -- on a 119-building B3 tile, matched view/base masks overlap at median
+    IoU 0.80-0.87 with centroid spread 7-10 px (split vs merged buildings), and
+    no systematic offset -- so averaging its masks blends different
+    segmentations: -11% AP75 on 250 v2-test tiles. Scores still carry signal
+    (AR +1.1%, matched +1.6 points), which fuse="scores" keeps.
+
+    Returns a torchvision-style dict: masks (N,1,H,W) probabilities, scores,
+    boxes, labels, votes.
     """
+    assert fuse in ("masks", "scores"), fuse
     base = model([img])[0]
     probs = base["masks"][:, 0].float()                       # (N,H,W)
     scores = base["scores"].float()
@@ -100,13 +111,14 @@ def predict_d4(model, img, mask_thresh=0.5, match_iou=0.5, min_votes=1, ops=D4_O
             if row[j] < match_iou:
                 continue
             claimed[j] = True
-            acc[j] += vp[vi]
+            if fuse == "masks":
+                acc[j] += vp[vi]
             score_sum[j] += o["scores"][vi]
             votes[j] += 1
             if claimed.all():
                 break
 
-    fused = acc / votes[:, None, None]
+    fused = acc / votes[:, None, None] if fuse == "masks" else probs
     keep = votes >= min_votes
     fused, fused_scores, votes = fused[keep], (score_sum / votes)[keep], votes[keep]
     order = torch.argsort(fused_scores, descending=True)
