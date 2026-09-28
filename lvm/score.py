@@ -20,6 +20,7 @@ from lvm.boundary import boundary_metrics, sample_ids
 from lvm.data import BuildingDataset, collate
 from lvm.evaluate import load_gt, summarise
 from lvm.train import build_model
+from lvm.tta import predict_d4
 
 
 @torch.no_grad()
@@ -44,6 +45,9 @@ def main():
     ap.add_argument("--sample-only", action="store_true",
                     help="infer only on the boundary sample. AP is then a "
                          "subset AP, labelled as such -- for quick CPU checks")
+    ap.add_argument("--tta", choices=["none", "d4"], default="none",
+                    help="d4: fuse the 8 quarter-turn/mirror views of each "
+                         "tile (lvm.tta). 8x the inference cost")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -71,7 +75,10 @@ def main():
 
     results = []
     for n, (imgs, targets) in enumerate(dl):
-        outs = model([i.to(device) for i in imgs])
+        if args.tta == "d4":
+            outs = [predict_d4(model, i.to(device)) for i in imgs]
+        else:
+            outs = model([i.to(device) for i in imgs])
         for t, o in zip(targets, outs):
             iid = int(t["image_id"].item())
             masks = (o["masks"] > 0.5).squeeze(1).cpu().numpy().astype("uint8")
@@ -91,6 +98,7 @@ def main():
         m.update(boundary_metrics(gt, results, sample))
     m["checkpoint"] = args.ckpt
     m["weights"] = key
+    m["tta"] = args.tta
     m["split"] = args.split
     m["images"] = len(ds)
     if args.sample_only:
