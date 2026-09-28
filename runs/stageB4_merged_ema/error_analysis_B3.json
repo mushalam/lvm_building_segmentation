@@ -1,0 +1,97 @@
+{
+  "checkpoint": "runs/stageB3_long/best.pt",
+  "images": 250,
+  "gt": 20669,
+  "proposal_recall_50": 0.8040059993226571,
+  "proposal_recall_70": 0.6677633170448498,
+  "detection_ceiling_50": 0.6447336591030045,
+  "matched_recall_50": 0.6268324544003097,
+  "conf_precision": 0.6400276225751773,
+  "conf_detections": 15929,
+  "miss_reason": {
+    "poor outline (best IoU .3-.5)": 3156,
+    "weak overlap only (IoU .1-.3)": 776,
+    "not detected": 2059,
+    "merged with a neighbour": 1585,
+    "inside an oversized detection": 129,
+    "split into pieces": 8
+  },
+  "miss_reason_size": {
+    "medium: poor outline (best IoU .3-.5)": 1534,
+    "medium: weak overlap only (IoU .1-.3)": 131,
+    "small: poor outline (best IoU .3-.5)": 1407,
+    "small: not detected": 1927,
+    "small: weak overlap only (IoU .1-.3)": 626,
+    "small: merged with a neighbour": 1330,
+    "small: inside an oversized detection": 119,
+    "medium: merged with a neighbour": 248,
+    "large: poor outline (best IoU .3-.5)": 215,
+    "medium: not detected": 118,
+    "large: weak overlap only (IoU .1-.3)": 19,
+    "medium: split into pieces": 4,
+    "large: inside an oversized detection": 1,
+    "medium: inside an oversized detection": 9,
+    "large: not detected": 14,
+    "large: merged with a neighbour": 7,
+    "large: split into pieces": 4
+  },
+  "fp_reason": {
+    "background / unlabelled": 1277,
+    "fragment of one building": 2454,
+    "covers 2+ buildings (merge)": 1057,
+    "mislocalised": 946
+  },
+  "recall_by_size": {
+    "small": 0.30600461893764436,
+    "medium": 0.8182626478171957,
+    "large": 0.8402948402948403
+  },
+  "count_by_size": {
+    "small": 7794,
+    "medium": 11247,
+    "large": 1628
+  },
+  "recall_edge": {
+    "edge": 0.6952187182095626,
+    "interior": 0.605497016630697
+  },
+  "count_edge": {
+    "edge": 4915,
+    "interior": 15754
+  },
+  "recall_by_density": {
+    "80-150": 0.6426217038539553,
+    "150+": 0.6010714285714286,
+    "30-80": 0.6380764904386952,
+    "<30": 0.6896969696969697
+  },
+  "tp_mask_iou_mean": 0.7137739202224144,
+  "tp_box_iou_mean": 0.7488036566023181,
+  "tp_share_mask_iou_ge_75": 0.41586909539981476,
+  "tp_share_box_iou_ge_75": 0.5539518369867243,
+  "tp_mask_iou_when_box_iou_ge_85": 0.8231806242445638,
+  "tp_share_box_iou_ge_85": 0.257486878666255,
+  "ap_by_nms": {
+    "0.5": {
+      "AP": 0.19685526483322532,
+      "AP50": 0.4717957273639978,
+      "AP75": 0.1337736452662394,
+      "AP_small": 0.040296877448992595,
+      "AR": 0.3093473317528666
+    },
+    "0.6": {
+      "AP": 0.19721238562870003,
+      "AP50": 0.4684220000300064,
+      "AP75": 0.13513435676477578,
+      "AP_small": 0.039770680947337184,
+      "AR": 0.3130582031061009
+    },
+    "0.7": {
+      "AP": 0.1941648127822931,
+      "AP50": 0.4569441073677736,
+      "AP75": 0.13485986305879286,
+      "AP_small": 0.038018481212971314,
+      "AR": 0.31195510184334024
+    }
+  }
+}
