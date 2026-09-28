@@ -27,6 +27,7 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 from torchvision.models.detection.rpn import AnchorGenerator
 from pycocotools import mask as mask_util
 
+from lvm.boundary import boundary_metrics
 from lvm.data import BuildingDataset, collate
 from lvm.evaluate import load_gt, summarise
 
@@ -104,7 +105,11 @@ def validate(model, loader, gt, device, max_dets):
     # img_ids to default to the ids in `results` has the opposite defect -- a
     # tile with no detections drops out along with the buildings it missed.
     img_ids = [i["id"] for i in loader.dataset.index]
-    return summarise(gt, results, max_dets=max_dets, img_ids=img_ids)
+    m = summarise(gt, results, max_dets=max_dets, img_ids=img_ids)
+    # Matched mask IoU (and boundary IoU) on the same images, as the SAM 3
+    # incumbent measures them -- see lvm.boundary.
+    m.update(boundary_metrics(gt, results, img_ids))
+    return m
 
 
 def main():
@@ -142,6 +147,14 @@ def main():
                     help="validation is expensive; a fixed prefix of valid/ is "
                          "enough to track progress. Final numbers come from "
                          "lvm.score on test/, never from this")
+    ap.add_argument("--ema", type=float, default=0.0,
+                    help="decay for an exponential moving average of the "
+                         "weights, updated every step; 0 disables. Validation "
+                         "AP moves by sd 0.01-0.03 epoch to epoch, and an "
+                         "average over a few thousand steps smooths that out "
+                         "rather than betting on one epoch. Checkpoints then "
+                         "hold the averaged weights as 'model' and the raw "
+                         "ones as 'model_raw', so both can be scored")
     args = ap.parse_args()
 
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
@@ -188,6 +201,15 @@ def main():
     sched = torch.optim.lr_scheduler.OneCycleLR(
         opt, max_lr=args.lr, total_steps=args.epochs * len(tl), pct_start=0.1)
     scaler = torch.amp.GradScaler("cuda", enabled=device == "cuda")
+    ema = None
+    if args.ema:
+        from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
+        # use_buffers: BatchNorm running statistics are averaged too, so the
+        # averaged weights are evaluated with statistics that match them.
+        ema = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(args.ema),
+                            use_buffers=True)
+        print(f"  EMA of weights, decay {args.ema} "
+              f"(~{1 / (1 - args.ema):,.0f}-step horizon)", flush=True)
 
     gt_valid = load_gt(str(Path(args.data) / "valid" / "_annotations.coco.json"))
     history, best = [], -1.0
@@ -204,23 +226,39 @@ def main():
             scaler.unscale_(opt)
             torch.nn.utils.clip_grad_norm_(params, 10.0)
             scaler.step(opt); scaler.update(); sched.step()
+            if ema is not None:
+                ema.update_parameters(model)
             running += loss.item()
             if step % 100 == 0:
                 print(f"  ep{epoch} {step}/{len(tl)} loss {loss.item():.3f} "
                       f"lr {sched.get_last_lr()[0]:.2e}", flush=True)
 
         m = validate(model, vl, gt_valid, device, args.max_dets)
+        if ema is not None:
+            # Selection and 'model' in the checkpoint follow the averaged
+            # weights; the raw metrics stay in history under raw_*.
+            me = validate(ema.module, vl, gt_valid, device, args.max_dets)
+            me.update({f"raw_{k}": v for k, v in m.items()})
+            m = me
         m.update(epoch=epoch, train_loss=running / max(1, len(tl)),
                  minutes=(time.time() - t0) / 60)
         history.append(m)
         (out / "history.json").write_text(json.dumps(history, indent=2))
+        raw = (f"  [raw AP {m['raw_AP']:.4f} mask IoU {m['raw_matched_mask_iou']:.4f}]"
+               if ema is not None else "")
         print(f"epoch {epoch}: AP {m['AP']:.4f} AP50 {m['AP50']:.4f} "
               f"AP75 {m['AP75']:.4f} AP_small {m['AP_small']:.4f} "
+              f"mask IoU {m['matched_mask_iou']:.4f} "
+              f"matched {m['boundary_match_rate']:.3f}{raw} "
               f"({m['minutes']:.1f} min)", flush=True)
-        ckpt = {"model": model.state_dict(), "epoch": epoch,
+        ckpt = {"model": (ema.module if ema is not None else model).state_dict(),
+                "epoch": epoch,
                 "metrics": m, "anchors": ANCHORS,
                 "image_size": args.image_size, "backbone": args.backbone,
-                "d4": args.d4, "scratch_heads": args.scratch_heads}
+                "d4": args.d4, "scratch_heads": args.scratch_heads,
+                "ema": args.ema}
+        if ema is not None:
+            ckpt["model_raw"] = model.state_dict()
         # Always keep the newest weights. `best` is chosen on --val-images,
         # a subsample whose epoch-to-epoch spread (+-0.07 AP at 200 images in
         # run 3) is far wider than the differences it is asked to arbitrate,

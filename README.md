@@ -79,6 +79,8 @@ lvm/
   train.py       training loop; validates with the same scorer as score.py
   evaluate.py    the single COCO scorer, with a self-test
   score.py       score a checkpoint on a split
+  boundary.py    matched mask IoU and boundary IoU, as SAM 3's project measures them
+  predict.py     segment images with a checkpoint: overlay PNG and polygons
 tools/
   size_stats.py      instance-size statistics, used to set anchors and limits
   filter_empty.py    drop images with no annotations
@@ -136,8 +138,23 @@ python -m lvm.score --ckpt runs/run2/best.pt --split valid --out results/run2.js
 
 Other flags: `--backbone dinov3_convnext_{tiny,small,base}`, `--scratch-heads`
 (ImageNet trunk with random heads, the control for the DINOv3 runs), `--d4`, and
-`--init-from <ckpt>` for staged pretraining. `python -m lvm.train --help` shows
-the rest.
+`--init-from <ckpt>` for staged pretraining, and `--ema <decay>` to keep a moving
+average of the weights (checkpoints then hold both; `lvm.score --weights raw`
+scores the unaveraged ones). `python -m lvm.train --help` shows the rest.
+
+Validation and `lvm.score` both report matched mask IoU and boundary IoU
+alongside AP, using the SAM 3 project's definition (`lvm/boundary.py`).
+
+To see what a model does on an image, write a filled-and-outlined overlay and a
+JSON of building polygons in pixel coordinates:
+
+```
+python -m lvm.predict --ckpt runs/run2/best.pt --image tile.png --out-dir predictions/
+```
+
+`--image` takes files or directories. Images larger than 1024 px are predicted
+in 1024 px pieces, matching the IGN training tiles. `--score-thresh` (default
+0.5) only affects what is drawn.
 
 ## Measurement notes
 

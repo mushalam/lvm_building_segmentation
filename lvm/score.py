@@ -38,6 +38,9 @@ def main():
     ap.add_argument("--boundary-images", type=int, default=250,
                     help="seeded sample for mask/boundary IoU, as the SAM 3 "
                          "incumbent draws it; 0 skips them")
+    ap.add_argument("--weights", choices=["model", "raw"], default="model",
+                    help="for a checkpoint trained with --ema: 'model' is the "
+                         "averaged weights, 'raw' the unaveraged ones")
     ap.add_argument("--sample-only", action="store_true",
                     help="infer only on the boundary sample. AP is then a "
                          "subset AP, labelled as such -- for quick CPU checks")
@@ -52,7 +55,10 @@ def main():
     model = build_model(max(args.max_dets, 400), image_size=size,
                         backbone=bb,
                         scratch_heads=ck.get("scratch_heads", False)).to(device)
-    model.load_state_dict(ck["model"]); model.eval()
+    key = "model_raw" if args.weights == "raw" else "model"
+    assert key in ck, f"{args.ckpt} has no '{key}' (trained without --ema?)"
+    print(f"  weights '{key}'" + (f" (EMA decay {ck['ema']})" if ck.get("ema") else ""))
+    model.load_state_dict(ck[key]); model.eval()
 
     ds = BuildingDataset(args.data, args.split, train=False)
     gt = load_gt(str(Path(args.data) / args.split / "_annotations.coco.json"))
@@ -84,6 +90,7 @@ def main():
     if sample:
         m.update(boundary_metrics(gt, results, sample))
     m["checkpoint"] = args.ckpt
+    m["weights"] = key
     m["split"] = args.split
     m["images"] = len(ds)
     if args.sample_only:
