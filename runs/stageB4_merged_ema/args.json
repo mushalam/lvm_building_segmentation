@@ -1,0 +1,16 @@
+{
+  "data": "data/ign_building_v2/building",
+  "out": "runs/stageB4_merged_ema",
+  "epochs": 20,
+  "batch_size": 2,
+  "lr": 0.005,
+  "workers": 10,
+  "max_dets": 400,
+  "image_size": 2048,
+  "init_from": "runs/merged_r1_coco/last.pt",
+  "scratch_heads": false,
+  "d4": false,
+  "backbone": "resnet50",
+  "val_images": 200,
+  "ema": 0.9998
+}

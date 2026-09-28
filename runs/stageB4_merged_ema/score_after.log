@@ -1,0 +1,74 @@
+=== training exited 2026-09-28 18:00 ===
+  ep19 2400/2451 loss 0.911 lr 3.52e-08
+epoch 19: AP 0.2034 AP50 0.4749 AP75 0.1500 AP_small 0.0331 mask IoU 0.7247 matched 0.602  [raw AP 0.1990 mask IoU 0.7258] (21.0 min)
+done. best AP 0.2112
+=== runs/stageB4_merged_ema/last.pt [model] on v2 test -> runs/stageB4_merged_ema/score_v2test_last_ema.json  18:00 ===
+{
+  "AP": 0.1942385201292327,
+  "AP50": 0.462115588889049,
+  "AP75": 0.13645385905409999,
+  "AP_small": 0.03930035123388422,
+  "AP_medium": 0.27528669146405593,
+  "AP_large": 0.3227717951079851,
+  "AR": 0.3079733533495965,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.7115595184601817,
+  "matched_mask_iou": 0.7179461357923874,
+  "boundary_matched": 12284,
+  "boundary_match_rate": 0.5943199961294693,
+  "boundary_images": 250,
+  "checkpoint": "runs/stageB4_merged_ema/last.pt",
+  "weights": "model",
+  "tta": "none",
+  "split": "test",
+  "images": 1402
+}
+=== runs/stageB4_merged_ema/last.pt [raw] on v2 test -> runs/stageB4_merged_ema/score_v2test_last_raw.json  18:22 ===
+{
+  "AP": 0.1898774992515105,
+  "AP50": 0.4580068465101776,
+  "AP75": 0.13004400188555526,
+  "AP_small": 0.04045448310545069,
+  "AP_medium": 0.26899950725909405,
+  "AP_large": 0.3181970816536777,
+  "AR": 0.30140364045787205,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.7100087910694958,
+  "matched_mask_iou": 0.7164370784530113,
+  "boundary_matched": 12070,
+  "boundary_match_rate": 0.5839663263825052,
+  "boundary_images": 250,
+  "checkpoint": "runs/stageB4_merged_ema/last.pt",
+  "weights": "model_raw",
+  "tta": "none",
+  "split": "test",
+  "images": 1402
+}
+=== runs/stageB4_merged_ema/best.pt [model] on v2 test -> runs/stageB4_merged_ema/score_v2test_best_ema.json  18:44 ===
+{
+  "AP": 0.20110734011359238,
+  "AP50": 0.472479623547389,
+  "AP75": 0.1453533623006242,
+  "AP_small": 0.030327301955346015,
+  "AP_medium": 0.290692283930227,
+  "AP_large": 0.34135063896035567,
+  "AR": 0.323828110339651,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.7122763904233431,
+  "matched_mask_iou": 0.7185199423152795,
+  "boundary_matched": 12897,
+  "boundary_match_rate": 0.6239779379747448,
+  "boundary_images": 250,
+  "checkpoint": "runs/stageB4_merged_ema/best.pt",
+  "weights": "model",
+  "tta": "none",
+  "split": "test",
+  "images": 1402
+}
+=== all scoring done 2026-09-28 19:06 ===

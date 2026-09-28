@@ -60,6 +60,11 @@ def main():
     paths = paths[:args.warmup] + paths[:args.n]
 
     spec = json.loads(Path(args.arch).read_text()) if args.arch else None
+    # freeze_backbone (and unfreeze_last) shape training only, and the model
+    # builder rejects them: v2_frozen's arch.json failed with "unexpected
+    # keyword argument 'freeze_backbone'". Inference architecture is the rest.
+    if spec:
+        spec = {k: v for k, v in spec.items() if k not in ("freeze_backbone", "unfreeze_last")}
     model = load_model(args.ckpt, args.sam3_root, device="cuda", arch=spec)
     processor = Sam3Processor(model)
     n_params = sum(p.numel() for p in model.parameters())

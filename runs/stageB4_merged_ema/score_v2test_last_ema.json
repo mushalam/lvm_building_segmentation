@@ -1,0 +1,22 @@
+{
+  "AP": 0.1942385201292327,
+  "AP50": 0.462115588889049,
+  "AP75": 0.13645385905409999,
+  "AP_small": 0.03930035123388422,
+  "AP_medium": 0.27528669146405593,
+  "AP_large": 0.3227717951079851,
+  "AR": 0.3079733533495965,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.7115595184601817,
+  "matched_mask_iou": 0.7179461357923874,
+  "boundary_matched": 12284,
+  "boundary_match_rate": 0.5943199961294693,
+  "boundary_images": 250,
+  "checkpoint": "runs/stageB4_merged_ema/last.pt",
+  "weights": "model",
+  "tta": "none",
+  "split": "test",
+  "images": 1402
+}

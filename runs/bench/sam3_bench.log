@@ -1,0 +1,10 @@
+/home/ankur/work/sam3ft/.venv/lib64/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/home/ankur/work/sam3ft/.venv/lib64/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[arch] decoder queries 200 -> 320
+[model] 841M parameters, 841M trainable
+Loading fine-tuned checkpoint /home/ankur/work/bench_sam3/ckpt_v2_frozen/sam3_finetuned.pt
+Applying recorded architecture: {'num_queries': 320}
+eval, bf16, no threshold             model   354.5 ms  end-to-end   437.0 ms  (2.29 img/s)  320 dets  peak 6.0 GB
+deploy, bf16, score >= 0.5           model   116.5 ms  end-to-end   147.5 ms  (6.78 img/s)  48 dets  peak 4.4 GB

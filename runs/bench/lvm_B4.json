@@ -1,0 +1,63 @@
+{
+  "model": "Mask R-CNN (lvm)",
+  "checkpoint": "runs/stageB4_merged_ema/last.pt",
+  "parameters": 45880411,
+  "input_px": 2048,
+  "gpu": "NVIDIA L40S",
+  "torch": "2.14.0+cu126",
+  "tiles": 200,
+  "warmup": 10,
+  "runs": {
+    "eval, fp32, no threshold": {
+      "model": {
+        "mean_ms": 176.88000485301018,
+        "p50_ms": 175.69985520094633,
+        "p90_ms": 176.3657158240676,
+        "images_per_s": 5.653550274554856
+      },
+      "end_to_end": {
+        "mean_ms": 246.30083684809506,
+        "p50_ms": 245.35939190536737,
+        "p90_ms": 246.54452577233315,
+        "images_per_s": 4.060075527135726
+      },
+      "detections_per_image": 400.0,
+      "images_timed": 200,
+      "peak_gpu_mem_gb": 5.2651238441467285
+    },
+    "deploy, fp32, score >= 0.5": {
+      "model": {
+        "mean_ms": 100.12719565071166,
+        "p50_ms": 98.21924567222595,
+        "p90_ms": 111.55364830046892,
+        "images_per_s": 9.98729659310989
+      },
+      "end_to_end": {
+        "mean_ms": 130.68441652692854,
+        "p50_ms": 127.77497991919518,
+        "p90_ms": 149.09823052585125,
+        "images_per_s": 7.652021767981358
+      },
+      "detections_per_image": 61.285,
+      "images_timed": 200,
+      "peak_gpu_mem_gb": 2.9899234771728516
+    },
+    "eval, fp16 autocast, no threshold": {
+      "model": {
+        "mean_ms": 139.22311036847532,
+        "p50_ms": 137.90752179920673,
+        "p90_ms": 139.13832437247038,
+        "images_per_s": 7.182715551702204
+      },
+      "end_to_end": {
+        "mean_ms": 207.57364865392447,
+        "p50_ms": 205.70380613207817,
+        "p90_ms": 207.52431452274323,
+        "images_per_s": 4.81756719354701
+      },
+      "detections_per_image": 400.0,
+      "images_timed": 200,
+      "peak_gpu_mem_gb": 5.098690509796143
+    }
+  }
+}

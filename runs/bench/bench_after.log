@@ -1,0 +1,23 @@
+=== GPU 1 before: 0 MiB, 0 %  2026-09-28 19:07 ===
+=== Mask R-CNN: B3 (v2 test 0.2010) ===
+eval, fp32, no threshold             model   176.4 ms  end-to-end   246.1 ms  (4.06 img/s)  400 dets  peak 5.3 GB
+deploy, fp32, score >= 0.5           model    99.4 ms  end-to-end   129.9 ms  (7.70 img/s)  60 dets  peak 2.9 GB
+eval, fp16 autocast, no threshold    model   138.0 ms  end-to-end   205.4 ms  (4.87 img/s)  400 dets  peak 5.1 GB
+=== Mask R-CNN: B4 last.pt ===
+eval, fp32, no threshold             model   176.9 ms  end-to-end   246.3 ms  (4.06 img/s)  400 dets  peak 5.3 GB
+deploy, fp32, score >= 0.5           model   100.1 ms  end-to-end   130.7 ms  (7.65 img/s)  61 dets  peak 3.0 GB
+eval, fp16 autocast, no threshold    model   139.2 ms  end-to-end   207.6 ms  (4.82 img/s)  400 dets  peak 5.1 GB
+=== SAM 3 (num_queries 320) ===
+Loading fine-tuned checkpoint /home/ankur/work/bench_sam3/ckpt_v2_frozen/sam3_finetuned.pt
+Applying recorded architecture: {'num_queries': 320, 'freeze_backbone': True}
+Traceback (most recent call last):
+  File "/home/ankur/work/lvm_EOSC/tools/bench_sam3.py", line 98, in <module>
+    main()
+  File "/home/ankur/work/lvm_EOSC/tools/bench_sam3.py", line 63, in main
+    model = load_model(args.ckpt, args.sam3_root, device="cuda", arch=spec)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ankur/work/bench_sam3/code/sam3ft/predict.py", line 85, in load_model
+    return model_factory.build_sam3ft_image_model(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: build_sam3ft_image_model() got an unexpected keyword argument 'freeze_backbone'
+=== done 2026-09-28 19:11 ===
