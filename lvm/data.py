@@ -18,8 +18,14 @@ class BuildingDataset(torch.utils.data.Dataset):
     regression and the failure surfaces far from its cause.
     """
 
-    def __init__(self, root, split, train=True, min_side=2.0, d4=False):
+    def __init__(self, root, split, train=True, min_side=2.0, d4=False,
+                 scale_jitter=None, copy_paste=0):
+        """scale_jitter: (lo, hi) or None. copy_paste: max buildings pasted
+        from another random tile, 0 to disable. Both only when train=True;
+        see lvm.augment."""
         self.d4 = d4
+        self.scale_jitter = scale_jitter if train else None
+        self.copy_paste = copy_paste if train else 0
         self.dir = Path(root) / split
         doc = json.loads((self.dir / "_annotations.coco.json").read_text())
         self.images = doc["images"]
@@ -39,11 +45,36 @@ class BuildingDataset(torch.utils.data.Dataset):
         # training and keep them in evaluation, where absence is informative.
         self.index = [i for i in self.images
                       if not train or by_img.get(i["id"])]
+        # copy-paste never takes a tile past the densest real one: denser
+        # tiles are a scene the data does not contain, and each building costs
+        # a full-size float mask inside the model (~17 MB at 2048 px), so an
+        # uncapped paste onto a 305-building tile asked for a 5.5 GB block.
+        self.max_instances = max((len(v) for v in by_img.values()), default=0)
 
     def __len__(self):
         return len(self.index)
 
     def __getitem__(self, i):
+        t, target = self._load(i)
+        if self.scale_jitter or self.copy_paste:
+            from lvm.augment import scale_jitter, copy_paste
+            if self.scale_jitter:
+                t, target = scale_jitter(t, target, *self.scale_jitter)
+            if self.copy_paste:
+                j = int(torch.randint(len(self.index), ()))
+                s, st = self._load(j)
+                if self.scale_jitter:
+                    s, st = scale_jitter(s, st, *self.scale_jitter)
+                room = self.max_instances - len(target["masks"])
+                if room > 0:
+                    t, target = copy_paste(t, target, s, st,
+                                           max_paste=min(self.copy_paste, room))
+            target.pop("_valid", None)           # augmentation-internal
+        if self.d4:
+            t, target = apply_d4(t, target, int(torch.randint(8, ())))
+        return t, target
+
+    def _load(self, i):
         info = self.index[i]
         img = Image.open(self.dir / info["file_name"]).convert("RGB")
         t = torch.from_numpy(np.asarray(img).copy()).permute(2, 0, 1).float() / 255.0
@@ -72,8 +103,6 @@ class BuildingDataset(torch.utils.data.Dataset):
                                      dtype=torch.uint8),
             "image_id": torch.tensor([info["id"]]),
         }
-        if self.d4:
-            t, target = apply_d4(t, target, int(torch.randint(8, ())))
         return t, target
 
 

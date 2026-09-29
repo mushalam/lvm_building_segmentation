@@ -1,0 +1,15 @@
+# Exact versions of the environment every result in this repo was produced in
+# (Python 3.12.12, NVIDIA driver 590, CUDA 12.6 wheels, L40S GPUs).
+#
+# torch/torchvision are CUDA builds: install them from the PyTorch index first,
+#   pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cu126
+# then the rest:
+#   pip install -r requirements.txt
+torch==2.14.0
+torchvision==0.29.0
+numpy==1.26.4
+pillow==12.3.0
+pycocotools==2.0.11
+opencv-python==4.11.0.86  # cv2, for lvm.boundary and lvm.predict
+timm==1.0.29            # only for the DINOv3 backbones (--backbone dinov3_*)
+safetensors==0.8.0      # pulled in by timm

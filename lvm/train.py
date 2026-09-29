@@ -155,13 +155,31 @@ def main():
                          "rather than betting on one epoch. Checkpoints then "
                          "hold the averaged weights as 'model' and the raw "
                          "ones as 'model_raw', so both can be scored")
+    ap.add_argument("--scale-jitter", default=None,
+                    help="'lo,hi', e.g. '0.75,1.33': resize each training tile "
+                         "by U(lo,hi) then crop/pad back to tile size. Narrow on "
+                         "purpose -- pixel size is a real prior in nadir imagery. "
+                         "See lvm.augment")
+    ap.add_argument("--copy-paste", type=int, default=0,
+                    help="paste up to N buildings from another random tile onto "
+                         "background only (never over a building); 0 disables")
+    ap.add_argument("--val-every", type=int, default=1,
+                    help="validate every N epochs (and always on the last). "
+                         "last.pt is still written every epoch")
     args = ap.parse_args()
+    jitter = tuple(float(v) for v in args.scale_jitter.split(",")) if args.scale_jitter else None
+    assert jitter is None or (len(jitter) == 2 and 0 < jitter[0] <= 1 <= jitter[1]), \
+        f"--scale-jitter must be 'lo,hi' with lo <= 1 <= hi, got {args.scale_jitter}"
 
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
     (out / "args.json").write_text(json.dumps(vars(args), indent=2))
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    tr = BuildingDataset(args.data, "train", train=True, d4=args.d4)
+    tr = BuildingDataset(args.data, "train", train=True, d4=args.d4,
+                         scale_jitter=jitter, copy_paste=args.copy_paste)
+    if jitter or args.copy_paste:
+        print(f"  augmentation: scale jitter {jitter}, copy-paste up to "
+              f"{args.copy_paste} buildings/tile", flush=True)
     va = BuildingDataset(args.data, "valid", train=False)
     va.index = va.index[:args.val_images]
     print(f"train {len(tr):,} tiles ({tr.dropped:,} slivers dropped)  "
@@ -233,30 +251,38 @@ def main():
                 print(f"  ep{epoch} {step}/{len(tl)} loss {loss.item():.3f} "
                       f"lr {sched.get_last_lr()[0]:.2e}", flush=True)
 
-        m = validate(model, vl, gt_valid, device, args.max_dets)
-        if ema is not None:
-            # Selection and 'model' in the checkpoint follow the averaged
-            # weights; the raw metrics stay in history under raw_*.
-            me = validate(ema.module, vl, gt_valid, device, args.max_dets)
-            me.update({f"raw_{k}": v for k, v in m.items()})
-            m = me
+        validated = (epoch + 1) % args.val_every == 0 or epoch == args.epochs - 1
+        if validated:
+            m = validate(model, vl, gt_valid, device, args.max_dets)
+            if ema is not None:
+                # Selection and 'model' in the checkpoint follow the averaged
+                # weights; the raw metrics stay in history under raw_*.
+                me = validate(ema.module, vl, gt_valid, device, args.max_dets)
+                me.update({f"raw_{k}": v for k, v in m.items()})
+                m = me
+        else:
+            m = {}
         m.update(epoch=epoch, train_loss=running / max(1, len(tl)),
-                 minutes=(time.time() - t0) / 60)
+                 minutes=(time.time() - t0) / 60, validated=validated)
         history.append(m)
         (out / "history.json").write_text(json.dumps(history, indent=2))
-        raw = (f"  [raw AP {m['raw_AP']:.4f} mask IoU {m['raw_matched_mask_iou']:.4f}]"
-               if ema is not None else "")
-        print(f"epoch {epoch}: AP {m['AP']:.4f} AP50 {m['AP50']:.4f} "
-              f"AP75 {m['AP75']:.4f} AP_small {m['AP_small']:.4f} "
-              f"mask IoU {m['matched_mask_iou']:.4f} "
-              f"matched {m['boundary_match_rate']:.3f}{raw} "
-              f"({m['minutes']:.1f} min)", flush=True)
+        if validated:
+            raw = (f"  [raw AP {m['raw_AP']:.4f} mask IoU {m['raw_matched_mask_iou']:.4f}]"
+                   if ema is not None else "")
+            print(f"epoch {epoch}: AP {m['AP']:.4f} AP50 {m['AP50']:.4f} "
+                  f"AP75 {m['AP75']:.4f} AP_small {m['AP_small']:.4f} "
+                  f"mask IoU {m['matched_mask_iou']:.4f} "
+                  f"matched {m['boundary_match_rate']:.3f}{raw} "
+                  f"({m['minutes']:.1f} min)", flush=True)
+        else:
+            print(f"epoch {epoch}: train loss {m['train_loss']:.4f}, not validated "
+                  f"({m['minutes']:.1f} min)", flush=True)
         ckpt = {"model": (ema.module if ema is not None else model).state_dict(),
                 "epoch": epoch,
                 "metrics": m, "anchors": ANCHORS,
                 "image_size": args.image_size, "backbone": args.backbone,
                 "d4": args.d4, "scratch_heads": args.scratch_heads,
-                "ema": args.ema}
+                "ema": args.ema, "scale_jitter": jitter, "copy_paste": args.copy_paste}
         if ema is not None:
             ckpt["model_raw"] = model.state_dict()
         # Always keep the newest weights. `best` is chosen on --val-images,
@@ -265,7 +291,7 @@ def main():
         # so it can lock onto an early lucky epoch and discard later, better
         # models. last.pt makes that recoverable: score both on the full split.
         torch.save(ckpt, out / "last.pt")
-        if m["AP"] > best:
+        if validated and m["AP"] > best:
             best = m["AP"]
             torch.save(ckpt, out / "best.pt")
             print(f"  new best, saved", flush=True)
