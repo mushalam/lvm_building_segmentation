@@ -101,8 +101,12 @@ def self_test():
     """
     import sys
     gt_file = sys.argv[1] if len(sys.argv) > 1 else None
-    if not gt_file:
-        print("usage: python -m lvm.evaluate <annotations.json>"); return 1
+    if not gt_file or gt_file in ("-h", "--help"):
+        print("usage: python -m lvm.evaluate <annotations.json>\n\n"
+              "Perfect-prediction self-test: scores the file's ground truth against\n"
+              "itself. Every metric must be ~1.0 (0.99 if the split has empty masks,\n"
+              "which it reports); anything lower means the scorer is broken.")
+        return 0 if gt_file else 1
     gt = load_gt(gt_file)
     results = []
     for ann in gt.dataset["annotations"]:
