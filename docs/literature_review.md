@@ -1,0 +1,173 @@
+# Literature review log
+
+This is a running record of papers, code, datasets and data releases relevant to
+this project. A new dated entry is added each working day and covers what
+appeared since the previous entry.
+
+**Read this file before proposing a method or experiment.** A suggestion should
+cite the entry it rests on. Don't re-propose anything recorded below as
+*measured here* or *skip* unless new evidence appears. The ruled-out list with
+measurements is in [`experiments.md`](experiments.md).
+
+## Scope
+
+- building footprint and instance segmentation in aerial imagery
+- dense small-object segmentation
+- query-based instance segmentation (Mask2Former, Mask DINO)
+- SAM, SAM 2 and SAM 3: fine-tuning, adapters, distillation
+- label-imagery misalignment and off-nadir footprint offset
+- IGN and French open data: BD TOPO, BD ORTHO, ORTHO Express, LiDAR HD, FLAIR
+
+## Entry format
+
+Each entry covers:
+- **Searched:** the window it covers and the queries run.
+- **Items:** each item gives its title, link, date, the finding (with numbers),
+  and a verdict:
+  - `act`: worth trying now, with a note on how.
+  - `watch`: interesting, not yet actionable.
+  - `skip`: not worth trying, with the reason.
+  - `measured here`: already tested in this repo, with the result.
+
+  Write **nothing new** when that is the truth.
+- **Takeaway:** a sentence or two on what, if anything, changes for the project.
+
+A SessionStart hook (`tools/daily_litreview_check.sh`, wired up in each user's
+`.claude/settings.local.json`) reminds Claude when today's entry is missing.
+
+---
+
+## 2026-09-28 (baseline)
+
+This entry sets the baseline. It condenses the deep research done that day by
+two research agents, checked against primary sources, together with this repo's
+own diagnostics.
+
+### Methods: mask quality, detectors, building-specific
+
+| item | finding | verdict |
+|---|---|---|
+| Bigger mask grid: DCT-Mask ([2011.09876](https://arxiv.org/abs/2011.09876)), DynaMask ([2303.07868](https://arxiv.org/abs/2303.07868)) | Moving from 28 to 56/64/128 **lowers** COCO AP (35.2 → 34.4 → 32.9) | **measured here:** with perfect boxes the 28x28 grid already reaches IoU 0.928, and 56x56 reaches 0.926 (`tools/mask_ceiling.py`) |
+| Mask Scoring R-CNN ([1903.00241](https://arxiv.org/abs/1903.00241)) | Rescores detections by predicted mask IoU: +1.5 AP and +2.1 AP75 on COCO R50. Oracle rescoring adds a further +2.2–2.6 | `act`: our weakest metric is AP75. About 150 lines on torchvision `RoIHeads`. Run an oracle-rescoring diagnostic first |
+| DCT-Mask ([2011.09876](https://arxiv.org/abs/2011.09876)) | Frequency-domain mask head: +1.3 AP and +2.1 AP75 on COCO, at the same speed | `watch`: the cheapest boundary head to port. Our mask ceiling suggests limited headroom |
+| Mask Transfiner ([2111.13673](https://arxiv.org/abs/2111.13673)), RefineMask ([2104.08569](https://arxiv.org/abs/2104.08569)), BMask ([2007.08921](https://arxiv.org/abs/2007.08921)) | +1.4 to +2.6 AP on COCO, mainly boundary AP. They need detectron2 or mmdet | `watch`: switching framework costs 3–5 days |
+| PointRend ([1912.08193](https://arxiv.org/abs/1912.08193)) | +0.9–1.1 AP on COCO, but **AP_S drops 21.1 → 18.8** (Transfiner Table 9) | `skip`: 38% of our buildings are small |
+| Cascade Mask R-CNN / HTC ([1906.09756](https://arxiv.org/abs/1906.09756)) | +1.2–1.3 AP on COCO. Its own paper finds a detection AP90 gain of +8.7 shrinks to +1.8 for masks | `watch`: better boxes do not fix masks |
+| Mask2Former ([2112.01527](https://arxiv.org/abs/2112.01527)), Mask DINO ([2206.02777](https://arxiv.org/abs/2206.02777)) | On the WHU building benchmark, Mask2Former scores 69.2 AP vs Mask R-CNN's 65.6 (RSPrompter Table I). Mask2Former degrades at 300 queries | `watch`: the SAM 3-like family. Needs ≥ 400 queries. About a week of work |
+| ViTDet, Co-DETR, RTMDet-Ins | +4–15 AP on COCO with large backbones | `skip` for now: cost approaches SAM 3's |
+| HiSup, Frame Field Learning, PolyWorld, GCP | CrowdAI SOTA, but ~93% of CrowdAI val images leak into train (HiSup 79.4 → 65.4 AP on unseen images). HiSup and PolyWorld cannot represent shared walls | `skip`: poor fit for mask AP and for shared walls |
+| Frozen-SAM box refinement ("SAM-det", RSPrompter [2306.16269](https://arxiv.org/abs/2306.16269)) | 61.8 vs 65.6 AP for Mask R-CNN on WHU, so it is **worse** | `skip` |
+| Soft-NMS / Matrix NMS | +0.3–1.1 AP on COCO | **measured here:** box NMS 0.6 +0.0004, 0.7 −0.003 |
+| Simple Copy-Paste + large-scale jitter ([2012.07177](https://arxiv.org/abs/2012.07177)) | +0.5–1.1 mask AP on COCO, far more at low data | **measuring:** run r9 (narrow jitter ×0.75–1.33, background-only paste) |
+| EMA / SWA of weights | SWA: 34.7 → 35.5 AP (Mask R-CNN R50) | **measured here:** EMA +0.004 AP (B4) |
+| SAHI sliced inference ([2202.06934](https://arxiv.org/abs/2202.06934)) | +6.8 AP on VisDrone (large frames, tiny objects) | `skip`: our 2x upsampling already acts like slicing |
+| D4 test-time augmentation (sam3-ft-EOSC `tta.py`) | +6% relative AP for SAM 3 | **measured here:** −0.005 AP with mask fusion, −0.001 with score fusion. Mask R-CNN is not rotation-consistent |
+| BONAI / LOFT ([2204.13637](https://arxiv.org/abs/2204.13637)) | Models the roof-to-footprint offset: +3.37 F1 over Cascade Mask R-CNN | `watch`: directly relevant to our label misalignment. Needs offset labels |
+| Self-training with a stronger teacher (Copy-Paste Table 2) | +1.3 mask AP, or +2.3 combined with copy-paste | `watch`: SAM 3 as teacher on unlabelled same-region IGN tiles |
+
+### Data and weights
+
+| item | finding | verdict |
+|---|---|---|
+| **BD TOPO `batiment`** (IGN, Licence Ouverte 2.0) | 96–99% of central Paris, Lyon and Marseille buildings are cadastre-derived (the `origine_du_batiment` attribute): wall footprints, split per parcel. v2's labels come from this layer | `act`: generate 92/93/94 with `create_instance_seg_dataset_v2.py`. Same label convention as the test set |
+| **BD ORTHO IRC 20 cm** | Free per département. RGB and IRC editions from the same flight | `act`: same-year imagery for 92/93/94 |
+| **ORTHO Express** (true ortho, IGN) | Buildings are "not overturned" and less offset than BD ORTHO. Available as WMTS tiles only | `watch`: fixes the label alignment but changes the benchmark (the user must decide) |
+| **FLAIR-HUB `LC-A_IR` Swin-B** (IGNF, Etalab 2.0) | Trained on 152k IGN 20 cm patches in NIR-R-G order `[4,1,2]`. Building IoU 83.86 | `watch`: a domain-matched backbone, but our DINOv3 result says a new trunk with random heads loses |
+| FLAIR #1 / FLAIR-HUB datasets | Semantic labels only (19 classes) | `skip` as instance data |
+| RGB vs NIR-R-G | IGN's own Swin-B: building IoU 83.77 (RGB) vs 83.86 (IRC) | `skip`: channel order does not matter once fine-tuned |
+| SpaceNet 2 Paris (AOI_3), original S3 GeoJSON | Instance polygons, WorldView-3 at 0.3 m, suburban | `skip`: wrong sensor and density |
+| Netherlands PDOK CIR + BAG; NRW DOP + ALKIS | Open footprints plus CIR orthophotos | `skip` for now: cross-border shift. D001 showed that off-distribution data hurts (−0.046) |
+| WHU aerial, CrowdAI | RGB, low density | `skip`: the public-corpus pretraining gave +0.005 |
+| Microsoft Global ML Building Footprints | 7.4M French footprints, IoU 65.1% on Europe | `skip`: worse than BD TOPO |
+
+### Diagnostics from this repo (context for everything above)
+
+These come from `tools/error_analysis.py` on B3, over 20,669 v2-test buildings:
+- **Pipeline:** RPN proposals cover 80.4% of buildings, the detection ceiling is
+  64.5%, and 62.7% are matched.
+- **Misses:** poor outline 15%, not detected 10% (mostly small), merged with a
+  neighbour 8%.
+- **Small buildings:** recall is 31%.
+- **Label convention:** the ground-truth overlays confirm the misalignment and
+  the parcel splits.
+
+**Takeaway.** The largest lever is data with the test set's own label
+convention, meaning more Paris-region départements. The cheapest model-side
+bet is mask-quality rescoring aimed at AP75. Label alignment caps every model;
+whether to rebuild the benchmark on ORTHO Express is the user's decision.
+
+---
+
+## 2026-09-29
+
+**Searched.** The window is ~2026-08-29 to 2026-09-29. I queried the arXiv API
+sorted by submission date, ran web searches, and read the primary sources: arXiv
+abstract pages, GitHub repos, data.gouv.fr, cartes.gouv.fr and the OSM-FR forum.
+I read abstracts and READMEs, not full PDFs, so the numbers are as those pages
+state them. The queries are listed at the end of this entry.
+
+### Building / dense small-object instance segmentation
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [PolyTopoBench](https://arxiv.org/abs/2609.32856), NeurIPS 2026 D&B | 09-26 | A polygon-topology benchmark: 11 methods (Mask R-CNN+poly, SAM2+poly, HiSup, FFL, GCP, PolyWorld and others) on Inria (France, 254k instances) and Deventer. Methods "degrade substantially on polygons with holes". Code and data are released | `watch`: a Mask R-CNN vs SAM2 comparison on French aerial imagery, but the metric is polygon topology, not mask AP |
+| [LACE](https://arxiv.org/abs/2609.26549), box-supervised tree crowns | 09-22 | Trained on 900 boxes with a frozen DINOv3 ViT-L, it reaches mask AP50 0.663 vs 0.626 for mask-supervised Mask R-CNN on OAM-TCD. No code yet | `watch`: box-only supervision could sidestep offset and parcel-split masks, but it is trees, AP50 only, and has no code |
+| [Urban building instance seg.](https://arxiv.org/abs/2609.19631) | 09-17 | Point clouds | `skip`: 3D data |
+| [MariSat](https://arxiv.org/abs/2608.29852) | 08-30 | Vessel dataset, fine-tunes SAM 3 and YOLO11 | `skip`: not buildings |
+
+### SAM 3 / SAM 2 fine-tuning, adapters, distillation
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [facebookresearch/sam3](https://github.com/facebookresearch/sam3) | 09-18 | No new release. The latest is still SAM 3.1 (2026-03-27); the window's commits are video-tracker fixes | `skip` |
+| [SAM3-LoRA, structural defects](https://arxiv.org/abs/2609.00469) | 08-31 | LoRA on 0.12–1.3% of parameters. Failure mode: the presence head decouples from the prompt when trained only on positive tiles, fixed by hard-negative prompting. No code | `watch`: this matters to the SAM 3 baseline only if it was trained on building-positive tiles alone, and `building` is its only class |
+| [SRPR-Net](https://arxiv.org/abs/2609.24226) | 09-21 | Refines detector boxes before SAM decodes them. [Code](https://github.com/JeremyXSC/SRPR-Net). No benchmarks or numbers in the abstract | `watch`: box-prompted *frozen* SAM was worse than Mask R-CNN on WHU (2026-09-28 entry). Needs numbers before trying |
+| [WireSeg-32K](https://arxiv.org/abs/2609.03102), [VPRef](https://arxiv.org/abs/2609.16486) | 09-02, 09-15 | SAM 3 fine-tunes for wires and for referring segmentation | `skip`: different tasks |
+
+No new work on distilling SAM 3 into a small building detector.
+
+### Footprint/roof alignment, misaligned labels, true ortho
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [Align and Segment (AnS)](https://arxiv.org/abs/2607.10841), [code](https://github.com/venkanna37/align-and-segment) (MIT) | v1 07-12. The repo now reads *accepted at ECCV 2026* and has new DINOv3 weights on Hugging Face (date of change not shown) | A spatial transformer learns a per-label affine shift to align misaligned building labels with the imagery, self-supervised, with no clean ground truth needed | `act`: the closest match to our roof-vs-cadastre offset. Re-align the BD TOPO training masks with AnS, then retrain Mask R-CNN. It fixes offset, not parcel splits. Scoring still uses the original test labels, so gains on the benchmark are not guaranteed |
+| [ObliCity / DragRoof](https://arxiv.org/abs/2607.25210) | 07-28 | A roof-to-ground displacement benchmark. The data is available only by request (email/WeChat/Baidu) | `watch`: not openly available |
+
+### Datasets / IGN releases
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [IGN Ortho-Express](https://www.data.gouv.fr/datasets/ortho-express) (true ortho, correlation DSM, 20 cm, **IRC** and RVB) | updated 09-15 | The 2026 départements are being published progressively (Rhône/Ain 08-23 through Eure-et-Loir/Loiret 09-11). **No Paris (75) or Île-de-France listing was found** | `act`, conditional: check data.geopf.fr for a D075 tile. If it exists, BD TOPO rasterised onto it removes most of the roof/outline offset. This changes the benchmark (the user must decide) |
+| LiDAR HD MNS/MNT | 09-06 | 507,791 tiles published, 78.4% of communal area, 50 cm GeoTIFF, etalab-2.0. Paris coverage not confirmed | `watch`: a DSM input channel, or DSM-based label re-projection |
+| BD TOPO | — | No release in the window. The next edition (263) is due in October 2026 | `skip` for now |
+| [Global building datasets compared](https://arxiv.org/abs/2609.28154) | 09-23 | 7 products over 135 areas; Overture has the best vector F1 at 0.786 | `skip`: continental products |
+| FLAIR | — | No new release | — |
+
+### COCO/LVIS instance segmentation (small objects, boundary)
+
+Nothing new with released code and AP_S, AP75 or boundary gains.
+[iFAN](https://arxiv.org/abs/2608.03216) (v2 08-07) gives +1.30 AP for mask
+transformers: `skip`, since it doesn't apply to Mask R-CNN.
+
+**Takeaway.** Two new leads both target the diagnosed label misalignment, the
+largest limit found:
+1. **Align and Segment**, which re-aligns the training labels to the imagery.
+2. **Ortho-Express**, IGN's true ortho, if Paris becomes available.
+
+Neither changes the recommendation to generate 92/93/94 data first. Both are
+cheap to check:
+- AnS has code and weights.
+- Ortho-Express needs one catalogue lookup for D075.
+
+**Queries.**
+- arXiv API, sorted by submission date:
+  - building AND (segmentation OR footprint)
+  - cs.CV AND building AND (aerial | satellite | remote sensing)
+  - cs.CV AND "instance segmentation"
+  - (SAM | segment anything) AND (remote sensing | aerial | satellite)
+  - cs.CV AND (footprint | roof | off-nadir | orthophoto)
+  - cs.CV AND (noisy labels | label noise | misaligned) AND segmentation
+  - (IGN | FLAIR | BD TOPO | LiDAR HD | France) AND (building | aerial)
+  - cs.CV AND (boundary AP | AP75 | small objects | mask quality) AND COCO
+- Web searches on SAM 3 releases, IGN news for September 2026, Ortho-Express
+  coverage and LiDAR HD diffusion.

@@ -11,3 +11,6 @@ runs/*/*.pt
 # tree: lvm_EOSC's 'data' is a symlink into project 1, so downloads must land
 # here instead.
 data_local/
+
+# Per-user Claude Code settings (e.g. the daily literature-review hook)
+.claude/settings.local.json

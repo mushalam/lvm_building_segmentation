@@ -16,7 +16,10 @@ same scoring protocol.
 
 Every experiment, including the failures, is written up in
 [`docs/experiments.md`](docs/experiments.md). The commit messages carry the full
-reasoning behind each result.
+reasoning behind each result. The relevant literature and data sources, with a
+verdict on each, are logged daily in
+[`docs/literature_review.md`](docs/literature_review.md). Read it before
+proposing what to try next.
 
 ---
 
@@ -281,8 +284,10 @@ tools/
   mask_ceiling.py    IoU ceiling of the 28x28 mask grid given perfect boxes
   bench_sam3.py      SAM 3 inference benchmark, run from the sam3-ft-EOSC code
   size_stats.py, filter_empty.py, filter_density.py, remap_category.py  data prep
+  daily_litreview_check.sh  SessionStart hook: prompts the daily literature review
 runs/<run>/      per-run args, histories, scores and queue scripts (no checkpoints)
 results/         archived histories and scores from runs 3-8 and stages A/B
 docs/experiments.md  every run: command, question, result, verdict
+docs/literature_review.md  daily log of relevant papers/data, each with a verdict
 plan.md          original plan and lab notebook (through run B3)
 ```
