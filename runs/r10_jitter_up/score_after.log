@@ -1,0 +1,74 @@
+=== training exited 2026-09-30 19:51 ===
+  ep35 2400/2451 loss 0.901 lr 2.47e-08
+epoch 35: AP 0.2268 AP50 0.5027 AP75 0.1815 AP_small 0.0220 mask IoU 0.7289 matched 0.648  [raw AP 0.1731 mask IoU 0.7279] (21.5 min)
+done. best AP 0.2303
+=== runs/r10_jitter_up/best.pt [model] on v2 test -> runs/r10_jitter_up/score_v2test_best_ema.json  19:51 ===
+{
+  "AP": 0.21767771353314433,
+  "AP50": 0.49579489283563066,
+  "AP75": 0.16367173238636257,
+  "AP_small": 0.029492571524354506,
+  "AP_medium": 0.3141295574617117,
+  "AP_large": 0.3653916111510759,
+  "AR": 0.34362826046162515,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.7165198559421808,
+  "matched_mask_iou": 0.7225892399960929,
+  "boundary_matched": 13408,
+  "boundary_match_rate": 0.6487009531181963,
+  "boundary_images": 250,
+  "checkpoint": "runs/r10_jitter_up/best.pt",
+  "weights": "model",
+  "tta": "none",
+  "split": "test",
+  "images": 1402
+}
+=== runs/r10_jitter_up/last.pt [model] on v2 test -> runs/r10_jitter_up/score_v2test_last_ema.json  20:15 ===
+{
+  "AP": 0.21439171658165002,
+  "AP50": 0.48984623751358836,
+  "AP75": 0.16070972209090087,
+  "AP_small": 0.029754095060839945,
+  "AP_medium": 0.3088001421633017,
+  "AP_large": 0.3531074509863267,
+  "AR": 0.3379339463313943,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.7159950684318084,
+  "matched_mask_iou": 0.7220410040955485,
+  "boundary_matched": 13222,
+  "boundary_match_rate": 0.6397019691325173,
+  "boundary_images": 250,
+  "checkpoint": "runs/r10_jitter_up/last.pt",
+  "weights": "model",
+  "tta": "none",
+  "split": "test",
+  "images": 1402
+}
+=== runs/r10_jitter_up/last.pt [raw] on v2 test -> runs/r10_jitter_up/score_v2test_last_raw.json  20:38 ===
+{
+  "AP": 0.16231711196553558,
+  "AP50": 0.37813724371095214,
+  "AP75": 0.11818427279076497,
+  "AP_small": 0.012113842501506244,
+  "AP_medium": 0.29441295060615646,
+  "AP_large": 0.3479560973076127,
+  "AR": 0.335901670106962,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.715679330359084,
+  "matched_mask_iou": 0.7217735923907738,
+  "boundary_matched": 13180,
+  "boundary_match_rate": 0.6376699404905898,
+  "boundary_images": 250,
+  "checkpoint": "runs/r10_jitter_up/last.pt",
+  "weights": "model_raw",
+  "tta": "none",
+  "split": "test",
+  "images": 1402
+}
+=== all scoring done 2026-09-30 21:01 ===

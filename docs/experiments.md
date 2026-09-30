@@ -45,7 +45,7 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | merged | `merged_r1_coco` | Run 2 on v2 + D001 (8x the data), 6 epochs | n/a† | 0.1440 / **0.1544** | 90% rural data hurts dense Paris by −0.046 |
 | B4 | `stageB4_merged_ema` | Initialise from merged, B3 recipe, EMA | n/a† | 0.2011 / 0.1942 (raw 0.1899) | Ties B3. EMA +0.004. French pretraining no gain |
 | r9 | `r9_aug_long` | Run 2 + scale jitter x0.75-1.33 + background copy-paste + EMA, 36 epochs | 0.2146 (ep16) / 0.2114 (ep36), 200-tile subset | **0.2070** / best.pt 0.2016 (raw last 0.1702) | **New best, +0.006.** Augmentation makes the long schedule pay off. AP75 +0.012, matched 62→65.6%, but AP_small 0.034→0.023. EMA essential (+0.037 over raw) |
-| r10 | `r10_jitter_up` | r9 with enlarge-only jitter (x1.0-1.33): is the x0.75 shrink what cost AP_small? | *running* | | |
+| r10 | `r10_jitter_up` | r9 with enlarge-only jitter (x1.0-1.33): is the x0.75 shrink what cost AP_small? | 0.2303 (ep30) / 0.2268 (ep36), 200-tile subset | **0.2177** / last 0.2144 (raw last 0.1623) | **New best, +0.011 over r9.** AP_small back to 0.030 (r9 0.023), AP50 +0.026. EMA essential again |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
@@ -161,3 +161,31 @@ and `expandable_segments`. See `attempt1_train.log` on the server.
   A jitter range of ×1.0–1.33 (enlarge only) is the obvious next test.
 - **EMA carries it.** The raw weights swing between 0.12 and 0.23 epoch to epoch
   on validation, and the final raw weights test at 0.170.
+
+## r10 in detail
+
+r9 with one change: scale jitter ×1.0–1.33, enlarging only.
+
+**Test (v2, 1,402 tiles):**
+
+| weights | AP | AP50 | AP75 | AP_small | AP_medium | AP_large | AR | mask IoU | matched |
+|---|---|---|---|---|---|---|---|---|---|
+| best.pt (epoch 30), EMA | **0.2177** | **0.4958** | **0.1637** | 0.0295 | 0.3141 | 0.3654 | 0.3436 | 0.7226 | 64.9% |
+| last.pt, EMA | 0.2144 | 0.4898 | 0.1607 | 0.0298 | 0.3088 | 0.3531 | 0.3379 | 0.7220 | 64.0% |
+| last.pt, raw | 0.1623 | 0.3781 | 0.1182 | 0.0121 | 0.2944 | 0.3480 | 0.3359 | 0.7218 | 63.8% |
+
+**What it shows:**
+- **The shrink half of r9's jitter was the small-building cost.** Removing it
+  brings AP_small from 0.023 back to 0.030, level with B4, though still under B3's
+  0.039. r9's medium and large gains are kept, and AP50 rises +0.026, so the
+  single-variable change pays for itself twice over.
+- **Validation selection worked.** The epoch-30 best.pt is also better than the
+  final epoch on test. v2 valid is clean for this run (COCO init, v2 only).
+- **The raw weights collapse on the final epoch in both r9 and r10** (0.170,
+  0.162), though raw validation hit 0.230 at epoch 32. The cause is not yet
+  understood. A likely suspect is BatchNorm running statistics taken from
+  augmented batches at a learning rate near zero. The EMA weights, which average
+  buffers too, are unaffected, and are what every r9/r10 checkpoint loads by
+  default.
+- **Against SAM 3:** 0.2383 on v2 valid against 0.2177 here on v2 test.
+  Different splits, but the gap has narrowed from ~0.037 to ~0.02.
