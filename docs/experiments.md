@@ -45,6 +45,7 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | merged | `merged_r1_coco` | Run 2 on v2 + D001 (8x the data), 6 epochs | n/a† | 0.1440 / **0.1544** | 90% rural data hurts dense Paris by −0.046 |
 | B4 | `stageB4_merged_ema` | Initialise from merged, B3 recipe, EMA | n/a† | 0.2011 / 0.1942 (raw 0.1899) | Ties B3. EMA +0.004. French pretraining no gain |
 | r9 | `r9_aug_long` | Run 2 + scale jitter x0.75-1.33 + background copy-paste + EMA, 36 epochs | 0.2146 (ep16) / 0.2114 (ep36), 200-tile subset | **0.2070** / best.pt 0.2016 (raw last 0.1702) | **New best, +0.006.** Augmentation makes the long schedule pay off. AP75 +0.012, matched 62→65.6%, but AP_small 0.034→0.023. EMA essential (+0.037 over raw) |
+| r10 | `r10_jitter_up` | r9 with enlarge-only jitter (x1.0-1.33): is the x0.75 shrink what cost AP_small? | *running* | | |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
