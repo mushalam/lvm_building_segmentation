@@ -171,3 +171,29 @@ cheap to check:
   - cs.CV AND (boundary AP | AP75 | small objects | mask quality) AND COCO
 - Web searches on SAM 3 releases, IGN news for September 2026, Ortho-Express
   coverage and LiDAR HD diffusion.
+
+---
+
+## 2026-09-30
+
+**Searched.** The window is 2026-09-29 to 2026-09-30. The arXiv API feed was last
+updated at 02:10Z, so this covers 09-29 submissions and revisions only. The
+searches ran the same arXiv API and web queries as yesterday, plus a new one:
+"scale augmentation that preserves small objects", prompted by r9's AP_small
+regression.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [UniBuild](https://arxiv.org/abs/2609.37031) | 09-29 | One DINOv3-B + HR-DPT model trained on 10 high-resolution sets plus Planet and Sentinel-2. It adds a structure-tensor direction loss and a "saddle-aware" loss against false positives in the narrow gaps between buildings. INRIA: IoU 83.29, Boundary-IoU 70.86. The saddle loss raises Planet mIoU from 45.77 to 47.80. Semantic output, RGB only, inference-only repo with no licence | `watch`: not our instance CIR task. The gap loss is an idea for our 8% of buildings merged with a neighbour (2026-09-28 diagnostics) |
+| [HyperSAM](https://arxiv.org/abs/2609.37340), IEEE GRSM | 09-29 | SAM 3 RGB branch frozen, plus a trainable spectral side encoder with zero-init ControlNet-style injection, trained on confidence-weighted SAM 3 pseudo-masks. No numbers in the abstract | `watch`: a clean way to feed NIR into SAM 3. Relevant to the SAM 3 project, not ours |
+| facebookresearch/sam3, efficientsam3 | — | No commits since 09-18, no release since v0.4.0 (06-11) | `skip` |
+| Footprint/roof alignment, noisy labels | — | **Nothing new** | — |
+| IGN Ortho-Express 2026 | 09-30 | Jura (39) added. **Still no Paris or Île-de-France** ([OSM-FR thread](https://forum.openstreetmap.fr/t/ign-ortho-express-2026/41923?page=4)) | `watch` |
+| **Géoportail closes 2026-09-30**, redirecting to cartes.gouv.fr ([source](https://www.banquedesterritoires.fr/cartesgouvfr-veut-conquerir-le-grand-public-le-geoportail-ferme-en-septembre-2026)) | 09-30 | Old links must be converted by 2026-12-31 | **checked:** this repo has no IGN endpoints. The dataset scripts on the team share (`download_bdtopo.py`, `download_ign_ten_split*.py`) use `data.geopf.fr`, the Géoplateforme download API, not geoportail.gouv.fr. `data.geopf.fr/telechargement/resource/BDTOPO?zone=D075` answered HTTP 200 on 09-30. No action needed |
+| LiDAR HD MNS coverage of Paris | — | Not verifiable: the progress map needs a login and the public pages give no percentage | `watch` |
+| BD ORTHO | — | No September update found | — |
+| COCO/LVIS small-object or boundary methods; scale augmentation that keeps AP_small | — | **Nothing new** | — |
+
+**Takeaway.** Nothing here changes what to try next. The data pipeline is not
+affected by the Géoportail closure. The only new idea worth keeping is
+UniBuild's gap loss for merged neighbours.
