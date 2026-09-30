@@ -6,13 +6,11 @@ model from the sibling project `sam3-ft-EOSC`, on the same dataset and with the
 same scoring protocol.
 
 **Status (29 Sep 2026).**
-- **Accuracy:** SAM 3 is still ahead. The best Mask R-CNN scores **0.201 segm AP**
-  on the held-out test split. On the one split both projects share (v2 valid),
+- **Accuracy:** SAM 3 is still ahead. The best Mask R-CNN scores **0.207 segm AP**
+  on the held-out test split (run r9: scale jitter, copy-paste, EMA, 36 epochs). On the one split both projects share (v2 valid),
   Mask R-CNN scores 0.196 against SAM 3's **0.238**.
 - **Cost:** Mask R-CNN is 18x smaller (46M vs 841M parameters) and trains in hours
   rather than days. At deployment it is only ~12% faster at inference.
-- **In progress:** a 36-epoch run with scale jitter and copy-paste
-  (`runs/r9_aug_long`).
 
 Every experiment, including the failures, is written up in
 [`docs/experiments.md`](docs/experiments.md). The commit messages carry the full
@@ -34,7 +32,8 @@ in the SAM 3 project and ported in `lvm/boundary.py`.
 |---|---|---|---|---|---|
 | run 2: Mask R-CNN R50-FPN v2, COCO weights, 2048 px, 12 epochs | 0.2006 | 0.141 | 0.034 | 0.716 | 62.7% |
 | B3: pretrained on a public building corpus first | 0.2010 | 0.143 | **0.039** | 0.715 | 62.0% |
-| **B4: pretrained on French IGN merged data first, weight EMA** | **0.2011** | **0.145** | 0.030 | **0.719** | 62.4% |
+| B4: pretrained on French IGN merged data first, weight EMA | 0.2011 | 0.145 | 0.030 | 0.719 | 62.4% |
+| **r9: run 2 + scale jitter + copy-paste + EMA, 36 epochs** | **0.2070** | **0.157** | 0.023 | **0.725** | **65.6%** |
 | merged: trained on v2 + D001 (8x the data) directly | 0.1544 | 0.086 | 0.033 | 0.696 | 58.4% |
 
 **Against SAM 3.** This compares the same v2 valid split, the same 250-tile
@@ -57,8 +56,11 @@ at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`.
 **What the experiments established.** The strongest findings are listed first.
 [`docs/experiments.md`](docs/experiments.md) has the evidence for each.
 
-1. **Mask R-CNN on this benchmark plateaus at ~0.201 AP.** Three different
-   recipes (run 2, B3, B4) land within 0.0005 of each other.
+1. **Augmentation broke the ~0.201 plateau.** Scale jitter, copy-paste and EMA
+   over 36 epochs reach 0.207 AP, with AP75 +0.012 and 3 points more buildings
+   matched. The long schedule pays off for the first time. Small-building AP fell,
+   though (0.034 → 0.023). Before r9, run 2, B3 and B4 landed within 0.0005 of
+   each other.
 2. **The labels are probably the main limit, for every model.**
    - They are BD TOPO footprints, 96-99% of them derived from the land registry in
      central Paris.
@@ -68,7 +70,7 @@ at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`.
 
    See [Known caveats](#known-caveats).
 3. **These made no difference or made things worse:**
-   - longer training (it overfits after ~12-16 epochs)
+   - longer training *without* augmentation (it overfits after ~12-16 epochs)
    - D4 augmentation, both in training and at test time
    - a DINOv3 backbone
    - NMS tuning
@@ -211,7 +213,8 @@ live on `tvs-gpu-2` under `~/work/lvm_EOSC/runs/<run>/`. Each run folder holds
 
 | use | checkpoint |
 |---|---|
-| best overall (test 0.2011) | `runs/stageB4_merged_ema/best.pt` (EMA weights) |
+| best overall (test 0.2070) | `runs/r9_aug_long/last.pt` (EMA weights; `--weights raw` scores 0.170, so use the default) |
+| best on small buildings (AP_small 0.039) | `runs/stageB3_long/best.pt` |
 | best trained on v2 alone, simplest | `runs/maskrcnn_v2_hires/best.pt` (run 2, test 0.2006) |
 
 ## Running on the team GPU server

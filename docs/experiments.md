@@ -32,7 +32,7 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | run | dir | question | valid best / last | test | verdict |
 |---|---|---|---|---|---|
 | 1 | `maskrcnn_v1` | Does a per-ROI 28x28 mask beat SAM 3's global grid? | 0.1789 | | No. Features are the limit at stride 4, not the mask head |
-| 2 | `maskrcnn_v2_hires` | Does feature resolution matter? Input 2048 px | 0.1948 | **0.2006** | Yes, +0.016. The strongest simple recipe |
+| 2 | `maskrcnn_v2_hires` | Does feature resolution matter? Input 2048 px | 0.1948 | 0.2006 | Yes, +0.016. The strongest simple recipe |
 | 3 | `maskrcnn_v3_long` | Longer training (30 epochs, lr 3.5e-3) | 0.1890 | | Void: two variables changed, and it selected a lucky epoch 4 |
 | 4 | `maskrcnn_v4` | Run 3 repeated at 20 epochs | 0.1874 / 0.1792 | | Still confounded (lr and epochs) |
 | 5 | `maskrcnn_v5_lr5e3` | Run 2 at 20 epochs, the clean test | 0.1896 / 0.1845 | | Longer training overfits (train loss −17%, AP down) |
@@ -41,10 +41,10 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | 8 | `maskrcnn_v8_scratch` | Control for 6: ImageNet R50 with random heads | 0.1734 / 0.1477 | | COCO detector heads carry the transfer, not the trunk |
 | A → B | `pretrainA_public` → `stageB_ign` | Pretrain on a public building corpus, then run 2 | 0.1932 / 0.1761 | | Faster convergence, same endpoint |
 | A2 → B2 | `pretrainA2_dense` → `stageB2_ign` | Same, on a dense-tile subset | 0.1905 / 0.1905 | | Density does not explain the null result |
-| A2 → B3 | `pretrainA2_dense` → `stageB3_long` | B2 at 20 epochs (single variable vs run 5) | 0.1954 / 0.1814 | **0.2010** | Pretraining worth about +0.005 |
+| A2 → B3 | `pretrainA2_dense` → `stageB3_long` | B2 at 20 epochs (single variable vs run 5) | 0.1954 / 0.1814 | 0.2010 | Pretraining worth about +0.005 |
 | merged | `merged_r1_coco` | Run 2 on v2 + D001 (8x the data), 6 epochs | n/a† | 0.1440 / **0.1544** | 90% rural data hurts dense Paris by −0.046 |
-| B4 | `stageB4_merged_ema` | Initialise from merged, B3 recipe, EMA | n/a† | **0.2011** / 0.1942 (raw 0.1899) | Ties B3. EMA +0.004. French pretraining no gain |
-| r9 | `r9_aug_long` | Scale jitter + copy-paste + EMA, 36 epochs | *running* | | Does augmentation make a long schedule pay off? |
+| B4 | `stageB4_merged_ema` | Initialise from merged, B3 recipe, EMA | n/a† | 0.2011 / 0.1942 (raw 0.1899) | Ties B3. EMA +0.004. French pretraining no gain |
+| r9 | `r9_aug_long` | Run 2 + scale jitter x0.75-1.33 + background copy-paste + EMA, 36 epochs | 0.2146 (ep16) / 0.2114 (ep36), 200-tile subset | **0.2070** / best.pt 0.2016 (raw last 0.1702) | **New best, +0.006.** Augmentation makes the long schedule pay off. AP75 +0.012, matched 62→65.6%, but AP_small 0.034→0.023. EMA essential (+0.037 over raw) |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
@@ -74,7 +74,7 @@ python -m lvm.train --out runs/stageB3_long --epochs 20 --image-size 2048 --init
 python -m lvm.train --data data_local/ign_building_merged/building --out runs/merged_r1_coco --epochs 6 --image-size 2048
 python -m lvm.train --out runs/stageB4_merged_ema --epochs 20 --image-size 2048 \
     --init-from runs/merged_r1_coco/last.pt --ema 0.9998
-# r9
+# r9 (launch with PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True)
 python -m lvm.train --out runs/r9_aug_long --epochs 36 --image-size 2048 --workers 16 --val-every 2 \
     --ema 0.9998 --scale-jitter 0.75,1.33 --copy-paste 30
 ```
@@ -124,3 +124,39 @@ over 20,669 buildings:
 reaches IoU 0.928 (small buildings 0.879). A 56x56 grid reaches 0.926.
 
 **Inference speed** (`runs/bench/`). See the README.
+
+## r9 in detail
+
+Run 2's recipe with scale jitter (×0.75–1.33, crop/pad back to the tile),
+background-only copy-paste (up to 30 buildings, capped at the densest real
+tile), and EMA at 0.9998, over 36 epochs with validation every 2.
+
+**The first attempt was restarted after 10 minutes.** It logged a CUDA OOM
+warning on a 4.3 GB block. It recovered, but the relaunch added the density cap
+and `expandable_segments`. See `attempt1_train.log` on the server.
+
+**Test (v2, 1,402 tiles):**
+
+| weights | AP | AP75 | AP_small | AP_medium | AP_large | AR | mask IoU | matched |
+|---|---|---|---|---|---|---|---|---|
+| last.pt, EMA | **0.2070** | **0.1570** | 0.0227 | 0.3134 | 0.3594 | 0.3468 | **0.7249** | 65.6% |
+| best.pt (epoch 16), EMA | 0.2016 | 0.1476 | 0.0210 | 0.3177 | 0.3772 | 0.3491 | 0.7212 | 66.4% |
+| last.pt, raw | 0.1702 | 0.1256 | 0.0148 | 0.3029 | 0.3563 | 0.3461 | 0.7247 | 65.5% |
+
+**What it shows:**
+- **The long schedule pays off.** The final epoch beats the mid-run peak on test
+  for the first time in this project. Training loss ended at 1.04, against run
+  5's 0.88 after only 20 epochs without augmentation: less memorisation, better
+  test.
+- **The gains are broad.**
+  - Medium +0.03, large +0.02 and recall +0.03.
+  - AP75 +0.012 over B4.
+  - The share of buildings matched rose ~3 points.
+
+  At one seed a +0.006 AP headline is borderline, but these consistent moves
+  make it likely real.
+- **Small buildings regressed.** AP_small fell from 0.030–0.039 to 0.023. The
+  likely cause is the ×0.75 shrink, which turns 10–20 px buildings into slivers.
+  A jitter range of ×1.0–1.33 (enlarge only) is the obvious next test.
+- **EMA carries it.** The raw weights swing between 0.12 and 0.23 epoch to epoch
+  on validation, and the final raw weights test at 0.170.
