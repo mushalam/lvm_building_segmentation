@@ -46,7 +46,7 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | B4 | `stageB4_merged_ema` | Initialise from merged, B3 recipe, EMA | n/a†‡ | 0.2011 / 0.1942 (raw 0.1899) | Ties B3. EMA +0.004. French pretraining no gain |
 | r9 | `r9_aug_long` | Run 2 + scale jitter x0.75-1.33 + background copy-paste + EMA, 36 epochs | 0.2146 (ep16) / 0.2114 (ep36), 200-tile subset | **0.2070** / best.pt 0.2016 (raw last 0.1702) | **New best, +0.006.** Augmentation makes the long schedule pay off. AP75 +0.012, matched 62→65.6%, but AP_small 0.034→0.023. EMA essential (+0.037 over raw) |
 | r10 | `r10_jitter_up` | r9 with enlarge-only jitter (x1.0-1.33): is the x0.75 shrink what cost AP_small? | 0.2303 (ep30) / 0.2268 (ep36), 200-tile subset | **0.2177** / last 0.2144 (raw last 0.1623) | **New best, +0.011 over r9.** AP_small back to 0.030 (r9 0.023), AP50 +0.026. EMA essential again |
-| r11 | `r11_paris_idf` | r10's recipe on v2 + 92/93/94 IRC (13,032 tiles), 14 epochs = matched steps (~91k vs 88k) | *running* | | Does more data with the test set's own label convention help? |
+| r11 | `r11_paris_idf` | r10's recipe on v2 + 92/93/94 IRC (13,032 tiles), 14 epochs = matched steps (~91k vs 88k) | 0.2229 (ep10) / 0.2200 (ep14), 200-tile subset | 0.2143 / last 0.2107 (raw last 0.2124) | **No gain (−0.003, noise level).** 2x the buildings with v2's convention does not move Paris test AP. AP_large +0.012, AP75 −0.010. Raw weights did *not* collapse |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
@@ -277,3 +277,36 @@ r10 last.pt:
 - **Untested:** recompute on *augmented* batches. If raw recovers to ~0.21, the
   cause is noisy BN statistics, and lower BN momentum (or EMA) is the fix.
   Practically, keep using the EMA weights.
+
+## r11 in detail
+
+r10's recipe on v2 train + 92/93/94 (13,032 tiles), 14 epochs, about 91k steps
+against r10's 88k. Validated on v2 valid, which is clean for this run.
+
+**Test (v2, 1,402 tiles):**
+
+| weights | AP | AP50 | AP75 | AP_small | AP_medium | AP_large | AR | mask IoU | boundary IoU† | matched |
+|---|---|---|---|---|---|---|---|---|---|---|
+| best.pt (epoch 10), EMA | 0.2143 | 0.4961 | 0.1539 | 0.0287 | 0.3138 | 0.3775 | 0.3450 | 0.7178 | 0.1787 | 65.9% |
+| last.pt, EMA | 0.2107 | 0.4858 | 0.1527 | 0.0249 | 0.3152 | 0.3763 | 0.3464 | 0.7192 | 0.1814 | 65.8% |
+| last.pt, raw | 0.2124 | 0.4885 | 0.1545 | 0.0260 | 0.3155 | 0.3773 | 0.3468 | 0.7203 | 0.1817 | 65.4% |
+| *r10 best.pt, for reference* | *0.2177* | *0.4958* | *0.1637* | *0.0295* | *0.3141* | *0.3654* | *0.3436* | *0.7226* | *0.1862* | *64.9%* |
+
+† Object-scale band. r10's figure is from the 250-tile re-measurement in
+`runs/boundary_object/`.
+
+**What it shows:**
+- **More same-convention suburban data does not help the Paris test set.** The
+  data is the same IRC product and year, with BD TOPO's same edition and v2's
+  tiling. Even so, the result is −0.003 AP, within single-seed noise. Large
+  buildings and match rate improve slightly; tight outlines (AP75, mask IoU) slip.
+- **Not undertrained.** Validation peaked at epoch 10 of 14.
+- **A plausible reading:** inner-suburb building stock is denser (91/tile vs 77)
+  and of a different type, so the extra data shifts the model rather than
+  sharpening it for central Paris. The 2026-09-28 literature verdict (`act`) is
+  answered: done, and no gain.
+- **A clue on the raw-weight collapse.** r9 and r10 (36 epochs over 4.9k tiles)
+  both collapsed at the final epoch. r11 (14 epochs over 13k tiles) did not: raw
+  0.2124 against EMA 0.2107, with identical batch size and BN settings. This favours
+  the "memorising noisy labels at a low learning rate" explanation (Morales-Brotons
+  et al., literature review 2026-10-01) over BN-statistics noise alone.

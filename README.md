@@ -36,6 +36,7 @@ in the SAM 3 project and ported in `lvm/boundary.py`.
 | B4: pretrained on French IGN merged data first, weight EMA | 0.2011 | 0.145 | 0.030 | 0.719 | 62.4% |
 | r9: run 2 + scale jitter (x0.75-1.33) + copy-paste + EMA, 36 epochs | 0.2070 | 0.157 | 0.023 | **0.725** | **65.6%** |
 | **r10: as r9 with enlarge-only jitter (x1.0-1.33)** | **0.2177** | **0.164** | 0.030 | 0.723 | 64.9% |
+| r11: r10's recipe on v2 + 92/93/94 (2x the buildings), matched steps | 0.2143 | 0.154 | 0.029 | 0.718 | **65.9%** |
 | merged: trained on v2 + D001 (8x the data) directly | 0.1544 | 0.086 | 0.033 | 0.696 | 58.4% |
 
 **Against SAM 3.**
@@ -74,6 +75,8 @@ at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`.
    - Enlarging only, never shrinking, reaches **0.218** (r10). It also recovers
      most of r9's small-building loss (AP_small 0.023 → 0.030).
    - Before r9, run 2, B3 and B4 landed within 0.0005 of each other.
+   - More data with v2's own label convention (92/93/94, 2x the buildings) did
+     **not** help: r11 scores 0.214 (r10 0.218).
 2. **The labels are probably the main limit, for every model.**
    - They are BD TOPO footprints, 96-99% of them derived from the land registry in
      central Paris.
