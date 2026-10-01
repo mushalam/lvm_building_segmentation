@@ -1,0 +1,22 @@
+{
+  "AP": 0.1709301257581849,
+  "AP50": 0.39866614851458165,
+  "AP75": 0.12354184875351887,
+  "AP_small": 0.013836287845633932,
+  "AP_medium": 0.29093859386324206,
+  "AP_large": 0.3474517356196677,
+  "AR": 0.33486489022330646,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.7148614729401643,
+  "matched_mask_iou": 0.7208486590350246,
+  "boundary_matched": 13268,
+  "boundary_match_rate": 0.6419275243117712,
+  "boundary_images": 250,
+  "checkpoint": "runs/r10_jitter_up/last_model_precisebn.pt",
+  "weights": "model",
+  "tta": "none",
+  "split": "test",
+  "images": 1402
+}

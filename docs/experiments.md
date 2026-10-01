@@ -42,13 +42,30 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | A → B | `pretrainA_public` → `stageB_ign` | Pretrain on a public building corpus, then run 2 | 0.1932 / 0.1761 | | Faster convergence, same endpoint |
 | A2 → B2 | `pretrainA2_dense` → `stageB2_ign` | Same, on a dense-tile subset | 0.1905 / 0.1905 | | Density does not explain the null result |
 | A2 → B3 | `pretrainA2_dense` → `stageB3_long` | B2 at 20 epochs (single variable vs run 5) | 0.1954 / 0.1814 | 0.2010 | Pretraining worth about +0.005 |
-| merged | `merged_r1_coco` | Run 2 on v2 + D001 (8x the data), 6 epochs | n/a† | 0.1440 / **0.1544** | 90% rural data hurts dense Paris by −0.046 |
-| B4 | `stageB4_merged_ema` | Initialise from merged, B3 recipe, EMA | n/a† | 0.2011 / 0.1942 (raw 0.1899) | Ties B3. EMA +0.004. French pretraining no gain |
+| merged | `merged_r1_coco` | Run 2 on v2 + D001 (8x the data), 6 epochs | n/a†‡ | 0.1440 / **0.1544** | 90% rural data hurts dense Paris by −0.046 |
+| B4 | `stageB4_merged_ema` | Initialise from merged, B3 recipe, EMA | n/a†‡ | 0.2011 / 0.1942 (raw 0.1899) | Ties B3. EMA +0.004. French pretraining no gain |
 | r9 | `r9_aug_long` | Run 2 + scale jitter x0.75-1.33 + background copy-paste + EMA, 36 epochs | 0.2146 (ep16) / 0.2114 (ep36), 200-tile subset | **0.2070** / best.pt 0.2016 (raw last 0.1702) | **New best, +0.006.** Augmentation makes the long schedule pay off. AP75 +0.012, matched 62→65.6%, but AP_small 0.034→0.023. EMA essential (+0.037 over raw) |
 | r10 | `r10_jitter_up` | r9 with enlarge-only jitter (x1.0-1.33): is the x0.75 shrink what cost AP_small? | 0.2303 (ep30) / 0.2268 (ep36), 200-tile subset | **0.2177** / last 0.2144 (raw last 0.1623) | **New best, +0.011 over r9.** AP_small back to 0.030 (r9 0.023), AP50 +0.026. EMA essential again |
+| r11 | `r11_paris_idf` | r10's recipe on v2 + 92/93/94 IRC (13,032 tiles), 14 epochs = matched steps (~91k vs 88k) | *running* | | Does more data with the test set's own label convention help? |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
+
+‡ **The merged dataset mixes two imagery products.** v2 and its test split are BD
+ORTHO **IRC** (false-colour infrared, vegetation red). D001, which is 90% of merged
+train, is BD ORTHO **RVB** (natural colour). The team-share France pipeline
+(`create_instance_seg_dataset_france_split_v3.py`, `download_ign_ten_split.py`)
+requests `RVB-0M20_JP2-E080`. A side-by-side render of the tiles confirms it, as
+do pixel statistics: 15.6% red-dominant pixels in v2 against 3.6% in D001.
+
+This changes how two results should be read:
+- **merged's −0.046** is confounded between "rural data" and "a different sensor
+  product".
+- **B4's "French pretraining gains nothing"** tested pretraining mostly on
+  natural-colour imagery, not on IRC.
+
+Neither is evidence against more *IRC* data. That is what the 92/93/94 build uses.
+
 
 **Reference: SAM 3, full fine-tune (sam3-ft-EOSC).** It scores 0.2383 AP on v2
 valid, with mask IoU 0.7341. It has no v2 test score.
@@ -189,3 +206,72 @@ r9 with one change: scale jitter ×1.0–1.33, enlarging only.
   default.
 - **Against SAM 3:** 0.2383 on v2 valid against 0.2177 here on v2 test.
   Different splits, but the gap has narrowed from ~0.037 to ~0.02.
+
+## The 92/93/94 dataset (`data_local/ign_idf`, `data_local/ign_paris_idf`)
+
+This dataset uses the same IGN products and conventions as v2. Imagery is BD ORTHO
+**IRC** 20 cm 2024, from the same campaign as Paris. Labels are BD TOPO
+2026-06-15, v2's edition. Tiling and rasterisation are v2's: 1024 px,
+`all_touched`, at least 4 px, no empty tiles.
+
+**How it was built:**
+1. `tools/fetch_ign.py` downloaded the six products from data.geopf.fr. BD
+   TOPO's advertised `.md5` files return 404, so integrity rests on the 7z CRCs
+   that `py7zr` checks on extraction.
+2. `tools/build_ign_dataset.py` made the tiles. Of 62 delivered sheets, 15 were
+   duplicate border squares, leaving 47.
+
+**What it produced:**
+
+| | tiles | buildings | per tile (mean / p95 / max) |
+|---|---|---|---|
+| 92/93/94 | 8,131 | 742,610 | 91.3 / 282 / 546 |
+| merged train (v2 + 92/93/94) | 13,034 | 1,119,915 | |
+
+Of the 27,072 tile positions considered:
+- 12,566 were outside 92 ∪ 93 ∪ 94, and would carry unlabelled neighbour
+  buildings.
+- 5,063 touched one of v2's 13 Paris sheets.
+- 1,312 had no building.
+
+**Leakage:** `tools/merge_coco.py` MD5-hashes every train tile against every v2
+valid/test tile, and found 0 identical out of 13,034. Valid and test are links to
+v2's own directories.
+
+**Memory:** the densest pair of tiles (484 + 519 buildings after jitter) peaks at
+35.1 GiB allocated, 37.2 GiB reserved, of 44.4 GiB. That fits with
+`expandable_segments`.
+
+**A finding about v2 itself.** The 5,063 tiles removed for touching Paris sheets
+are inner-suburb areas *inside* those sheets. v2 kept all of them, but labelled
+them from D075 (Paris-only) buildings. So v2 tiles near the Paris boundary,
+including test tiles, contain unlabelled suburb buildings. This plausibly
+accounts for part of the "background / unlabelled" false positives in
+`tools/error_analysis.py`.
+
+## The raw-weight collapse: BatchNorm diagnostic
+
+`tools/precise_bn.py` keeps the weights and recomputes only the BatchNorm buffers
+over 600 un-augmented training tiles. This tests Wu & Johnson's "stale running
+statistics" explanation from the 2026-10-01 literature review. Scored on v2 test,
+r10 last.pt:
+
+| weights | stored stats | recomputed, inference-mode forward | recomputed, training-mode forward |
+|---|---|---|---|
+| raw | 0.1623 | 0.1698 | 0.1764 |
+| EMA | **0.2144** | 0.1709 | 0.1767 |
+
+**Reading:**
+- **Stale statistics are not the explanation.** Recomputing pulls both models to
+  the same ~0.176, so it damages the good EMA model rather than repairing the raw
+  one.
+- **What fits the evidence:**
+  - The weights co-adapted with statistics gathered on *augmented* batches.
+  - Raw running statistics, at BN momentum 0.1 and batch 2, reflect only the
+    last ~10 batches, so they are noisy. The learning rate is ~1e-6 to 1e-8 over
+    the last epochs, yet raw validation AP drops 0.226 → 0.157 in two epochs. The
+    weights barely move then; the statistics do.
+  - The EMA averages those buffers over ~5,000 steps.
+- **Untested:** recompute on *augmented* batches. If raw recovers to ~0.21, the
+  cause is noisy BN statistics, and lower BN momentum (or EMA) is the fix.
+  Practically, keep using the EMA weights.

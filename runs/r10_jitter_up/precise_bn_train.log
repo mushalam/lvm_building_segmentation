@@ -1,0 +1,31 @@
+=== recompute BN stats (train mode): last.pt [raw]  10:42 ===
+69 BatchNorm layers reset; weights frozen
+  0/600 tiles  1s
+  100/600 tiles  27s
+  200/600 tiles  54s
+  300/600 tiles  80s
+  400/600 tiles  105s
+  500/600 tiles  131s
+relative running-mean change: median 0.007, max 0.055; running-var ratio new/old: median 0.989, min 0.924, max 1.100
+wrote runs/r10_jitter_up/last_raw_precisebn_train.pt
+=== score on v2 test  10:45 ===
+  "AP": 0.1763704595801919,
+  "AP75": 0.12998333901570314,
+  "AP_small": 0.014637674364484314,
+  "matched_mask_iou": 0.7218558762760785,
+=== recompute BN stats (train mode): last.pt [model]  11:06 ===
+69 BatchNorm layers reset; weights frozen
+  0/600 tiles  1s
+  100/600 tiles  26s
+  200/600 tiles  50s
+  300/600 tiles  74s
+  400/600 tiles  98s
+  500/600 tiles  124s
+relative running-mean change: median 0.013, max 0.141; running-var ratio new/old: median 0.995, min 0.804, max 1.093
+wrote runs/r10_jitter_up/last_model_precisebn_train.pt
+=== score on v2 test  11:09 ===
+  "AP": 0.17670503546784969,
+  "AP75": 0.13043602463627857,
+  "AP_small": 0.01466063792404246,
+  "matched_mask_iou": 0.7224719612623225,
+=== done 11:30 ===

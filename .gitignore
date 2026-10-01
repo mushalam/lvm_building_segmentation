@@ -14,3 +14,4 @@ data_local/
 
 # Per-user Claude Code settings (e.g. the daily literature-review hook)
 .claude/settings.local.json
+.venv_geo/

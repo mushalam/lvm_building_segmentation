@@ -1,0 +1,2 @@
+47 sheets (15 duplicate border squares dropped), 3 GPKGs, within ['92', '93', '94'], 13 excluded sheets; sheet-name georeferencing verified
+done: 8131 tiles, 742610 buildings (91.3/tile); totals {'tiles': 27072, 'outside': 12566, 'excluded': 5063, 'empty': 1312, 'kept': 8131, 'tiny': 1349}; 562s

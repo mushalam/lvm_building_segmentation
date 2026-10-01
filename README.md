@@ -118,6 +118,7 @@ data_local/ign_building_merged/building/{train,valid,test}/...
 | dataset | tiles (train/valid/test) | where it lives |
 |---|---|---|
 | `ign_building_v2`: Paris (D075), the benchmark | 4,903 / 700 / 1,402 | `tvs-gpu-2`: `~/work/sam3ft-fine/data/ign_building_v2`. This repo's `data` is a symlink to `~/work/sam3ft-fine/data` |
+| `ign_paris_idf`: v2 + 92/93/94 (IRC), same conventions | 13,034 / 700 / 1,402 (valid and test = v2's) | `tvs-gpu-2`: `~/work/lvm_EOSC/data_local/ign_paris_idf`, built by `tools/build_ign_dataset.py` + `tools/merge_coco.py`; see docs/experiments.md |
 | `ign_building_merged`: v2 + D001 (Ain) | 39,631 / 5,662 / 11,323 | `tvs-gpu-2`: `~/work/lvm_EOSC/data_local/ign_building_merged` (a real-file copy). The original is on the `tvs-gpu-1` team share: `LVM_datasets/IGN_MERGED_v3`, which is symlinks into the source folders |
 
 Both are 1024x1024 PNG tiles at 20 cm. The imagery is **false-colour infrared**
@@ -249,6 +250,11 @@ live on `tvs-gpu-2` under `~/work/lvm_EOSC/runs/<run>/`. Each run folder holds
 - **The v2 valid split is compromised for models initialised from the merged
   data.** 492 of its 700 tiles are in merged train. For B4-style runs, judge on v2
   test only. The 1,402 v2 test tiles are pinned and byte-identical in both datasets.
+- **The merged set mixes imagery products.** Its D001 tiles (90% of merged
+  train) are natural-colour RVB orthophotos. v2 and all test tiles are
+  false-colour IRC. Results trained on merged data (`merged_r1_coco`, B4) are
+  confounded by this. New data must use the IRC product, as `tools/fetch_ign.py`
+  does for 92/93/94.
 - **The merged set has 15 all-white tiles** (imagery nodata) that carry 59 labels.
   They are left in, being too few to matter.
 
@@ -291,6 +297,11 @@ tools/
   bench_sam3.py      SAM 3 inference benchmark, run from the sam3-ft-EOSC code
   size_stats.py, filter_empty.py, filter_density.py, remap_category.py  data prep
   daily_litreview_check.sh  SessionStart hook: prompts the daily literature review
+  fetch_ign.py       download + unpack IGN products (BD ORTHO, BD TOPO) from data.geopf.fr
+  build_ign_dataset.py  BD ORTHO + BD TOPO -> COCO tiles, v2's conventions, no-leak guards
+  merge_coco.py      union of train splits, with an MD5 leakage check against valid/test
+  precise_bn.py      recompute BatchNorm statistics on frozen weights (diagnostic)
+  v2_paris_sheets.txt  the 13 BD ORTHO sheets v2 was cut from
 runs/<run>/      per-run args, histories, scores and queue scripts (no checkpoints)
 results/         archived histories and scores from runs 3-8 and stages A/B
 docs/experiments.md  every run: command, question, result, verdict
