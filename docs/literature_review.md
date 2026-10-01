@@ -197,3 +197,58 @@ regression.
 **Takeaway.** Nothing here changes what to try next. The data pipeline is not
 affected by the Géoportail closure. The only new idea worth keeping is
 UniBuild's gap loss for merged neighbours.
+
+---
+
+## 2026-10-01
+
+**Searched.** The window is 2026-09-30 to 2026-10-01. The arXiv feed was last
+updated at 2026-10-01T08:37Z; the newest cs.CV submission it lists is from
+09-30 17:59Z, so 10-01 papers fall to the next entry. The searches ran the
+usual arXiv API and web queries, plus direct checks of the Géoplateforme BD
+TOPO listings, the Ortho-Express WMS and the torchvision source. One new
+question was added: why r9/r10's raw weights collapse on the final epoch while
+the EMA weights don't.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [COBICount](https://arxiv.org/abs/2609.39366) | 09-30 | Building/vehicle counting by density map, suppressing false responses on repeated structures such as roof edges and parking grids. No masks | `skip`: counting |
+| [UAV urbanised-area recognition](https://arxiv.org/abs/2609.40212) | 09-30 | Pixel classification at 10–15 mm | `skip` |
+| [AdvPCS](https://arxiv.org/abs/2609.39265), NeurIPS 2026 | 09-30 | A universal adversarial perturbation that transfers across SAM 3 prompt types | `skip`: robustness |
+| [DCM-SAM](https://arxiv.org/abs/2609.38811) | 09-30 | Frozen SAM plus per-class Conv-LoRA experts (4.4% trainable). 64.2% IoU on few-pixel CT pores; code released | `watch`: a small-object adapter recipe, far domain |
+| sam3 / sam2 repos | — | No pushes since 09-18 | — |
+| Alignment / noisy labels / true ortho | — | **Nothing new** | — |
+| **BD TOPO edition 263** (2026-09-15) | 09-29/30 | **Released regionally.** Île-de-France `R11` GPKG posted 09-30 (1.27 GB, HTTP 200), France-wide `FRA` posted 09-30. **Paris `D075` is not posted yet**; its latest is still 06-15. The change log (v3.6) lists TAAF, transport and parking changes, nothing on buildings | `act`: diff R11's buildings against our 06-15 labels. Footprint changes are probably small |
+| Ortho-Express | — | The WMS has an `IRC-EXPRESS.2026` layer, but a map request over central Paris returns an empty image while BD ORTHO IRC returns a full one. Read as no Paris coverage yet (inferred) | `watch` |
+| BD ORTHO | — | Last updated 09-07 | — |
+| [Hard-Region Supervision](https://arxiv.org/abs/2609.38714) | 09-30 | A training-only extra head and loss on the baseline's hard regions. #1 on Waymo video panoptic (wSTQ +2.4 over DVIS++), no inference cost. No COCO result, no code | `watch`: transferable to small buildings, unproven |
+
+**The raw-vs-EMA final-epoch collapse.** These sources are older than the
+window but answer an open question from r9/r10.
+- **What the architecture has:** torchvision `maskrcnn_resnet50_fpn_v2` uses
+  trainable `nn.BatchNorm2d` in the backbone/FPN, the 4-conv box head and the
+  mask head (verified in the source).
+- **[Wu & Johnson, "Rethinking 'Batch' in BatchNorm"](https://arxiv.org/abs/2105.07576) (2021).**
+  - Mask R-CNN heads with BatchNorm trained at one image per GPU score
+    30.7 box / 27.9 mask AP using their running statistics, against 41.5 / 37.0
+    using per-image proposal statistics.
+  - Running averages lag the weights; the fix is to recompute them on frozen
+    weights (*PreciseBN*).
+  - `act`: recompute BatchNorm statistics for r10's raw `last.pt` on
+    un-augmented training tiles and re-score. If it recovers, the statistics are
+    the cause. Our batch is 2 tiles, close to their failing case.
+- **[Morales-Brotons et al., "EMA of Weights"](https://arxiv.org/abs/2411.18704) (TMLR 2024).**
+  - BatchNorm statistics, not the weights, limit EMA; recomputing them restores
+    performance.
+  - Separately, with ~40% label noise the EMA model peaks around learning rate
+    0.4 and degrades once the rate is decayed far enough to memorise noisy labels.
+  - `watch`: the alternative explanation, memorising our misaligned BD TOPO
+    labels at the bottom of OneCycle. If PreciseBN doesn't fix it, try a higher
+    final learning rate.
+
+**Takeaway.** There is a cheap, well-founded test for the raw-weight collapse:
+recompute BatchNorm statistics on the raw checkpoint, about an hour of GPU. If
+it works, the final raw weights become usable and the EMA's role is better
+understood. BD TOPO's new edition for Île-de-France is out, which matters for
+the 92/93/94 data plan. Use edition 263 for any new départements, and check
+whether Paris's labels change. Nothing changes the priority order otherwise.
