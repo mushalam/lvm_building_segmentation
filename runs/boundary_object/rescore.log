@@ -1,0 +1,19 @@
+=== r10_jitter_up/best.pt  13:27 ===
+  "AP": 0.2157190477227534,
+  "boundary_iou": 0.18615006327109057,
+  "matched_mask_iou": 0.722615455069314,
+  "boundary_match_rate": 0.6486525714838647,
+  "boundary_dilation_px": 2.0,
+=== stageB3_long/best.pt  13:43 ===
+  "AP": 0.19685526483322532,
+  "boundary_iou": 0.1795977122101681,
+  "matched_mask_iou": 0.7146831133618673,
+  "boundary_match_rate": 0.6205912235715323,
+  "boundary_dilation_px": 2.0,
+=== maskrcnn_v2_hires/best.pt  13:59 ===
+  "AP": 0.19963331409000956,
+  "boundary_iou": 0.17946476430595454,
+  "matched_mask_iou": 0.7161141767198848,
+  "boundary_match_rate": 0.627654942183947,
+  "boundary_dilation_px": 2.0,
+=== done 14:14 ===

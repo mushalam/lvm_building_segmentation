@@ -1,10 +1,20 @@
 """Matched mask IoU and boundary IoU, as the SAM 3 incumbent measures them.
 
-Ported from sam3-ft-EOSC's sam3ft/metrics.py (evaluate_file, boundary_iou) so
-its 0.7341 mask IoU and 0.1944 boundary IoU can be compared like for like.
-Same matching (greedy, highest score first, IoU >= 0.5, each ground truth
-claimed once), same 0.05 score floor and 300-detection cap, same dilation (2%
-of the image diagonal), and the same seeded 250-image sample.
+Ported from sam3-ft-EOSC's sam3ft/metrics.py (evaluate_file, boundary_iou,
+boundary_dilation), so the two projects' numbers compare like for like: same
+matching (greedy, highest score first, IoU >= 0.5, each ground truth claimed
+once), same 0.05 score floor and 300-detection cap, same seeded 250-image
+sample, and -- since 2026-10-01 -- the same band.
+
+The band. The first port (2026-09-25) copied an older version of that file,
+whose band was 2% of the *image* diagonal: 29 px on a 1024 px tile, which
+erodes any building narrower than ~58 px away entirely, so "boundary IoU"
+degenerated into mask IoU (0.674 vs 0.684 here, 0.920 vs 0.921 in the
+equivalence test). The incumbent had already replaced it with an object-scale
+band -- round(0.02 * sqrt(area)) per building, clamped to [2, 15] px -- which
+is what it reports. Every boundary_iou this repo published before that date
+used the image-scale band and is not comparable with SAM 3's; mask IoU, AP
+and match rate were unaffected. scale="image" is kept to reproduce them.
 
 Both are means over *matched* pairs, so they measure outline quality of what
 was found and say nothing about what was missed; boundary_match_rate reports
@@ -40,8 +50,22 @@ def _iou(a, b):
     return float(np.count_nonzero(a & b) / union) if union else 0.0
 
 
-def boundary_iou(gt, pred, dilation_ratio=0.02):
-    dilation = max(1, int(round(dilation_ratio * np.hypot(*gt.shape))))
+def boundary_dilation(gt, dilation_ratio=0.02, scale="object", floor=2, cap=15):
+    """Band width in px. "object": ratio x sqrt(mask area), clamped to [floor, cap]
+    (the incumbent's current default). "image": ratio x image diagonal (the
+    Boundary IoU paper's rule; degenerate on small objects -- see module doc)."""
+    if scale == "image":
+        return max(1, int(round(dilation_ratio * np.hypot(*gt.shape))))
+    if scale != "object":
+        raise ValueError(f"scale must be 'object' or 'image', got {scale!r}")
+    area = float(np.count_nonzero(gt))
+    if area <= 0:
+        return int(floor)
+    return int(min(cap, max(floor, round(dilation_ratio * np.sqrt(area)))))
+
+
+def boundary_iou(gt, pred, dilation_ratio=0.02, scale="object"):
+    dilation = boundary_dilation(gt, dilation_ratio, scale)
     union = gt | pred
     rows, cols = np.any(union, axis=1), np.any(union, axis=0)
     if not rows.any():
@@ -65,12 +89,12 @@ def _rle(ann, h, w):
 
 
 def boundary_metrics(coco_gt, results, img_ids, dilation_ratio=0.02,
-                     match_iou=0.5, score_thresh=0.05, max_dets=300):
+                     match_iou=0.5, score_thresh=0.05, max_dets=300, scale="object"):
     by_img = {}
     for r in results:
         if r["score"] >= score_thresh:
             by_img.setdefault(r["image_id"], []).append(r)
-    b_scores, m_scores, total_gt = [], [], 0
+    b_scores, m_scores, dils, total_gt = [], [], [], 0
     for iid in img_ids:
         info = coco_gt.loadImgs(iid)[0]
         h, w = info["height"], info["width"]
@@ -92,12 +116,16 @@ def boundary_metrics(coco_gt, results, img_ids, dilation_ratio=0.02,
                 continue
             free[j] = False
             m_scores.append(float(row[j]))
-            b_scores.append(boundary_iou(mask_util.decode(gts[j]).astype(bool),
-                                         mask_util.decode(dts[i]).astype(bool),
-                                         dilation_ratio))
+            g = mask_util.decode(gts[j]).astype(bool)
+            dils.append(boundary_dilation(g, dilation_ratio, scale))
+            b_scores.append(boundary_iou(g, mask_util.decode(dts[i]).astype(bool),
+                                         dilation_ratio, scale))
     n = len(b_scores)
     return {"boundary_iou": float(np.mean(b_scores)) if n else 0.0,
             "matched_mask_iou": float(np.mean(m_scores)) if n else 0.0,
             "boundary_matched": n,
             "boundary_match_rate": n / total_gt if total_gt else 0.0,
-            "boundary_images": len(img_ids)}
+            "boundary_images": len(img_ids),
+            # the band varies per object, so report it, as the incumbent does
+            "boundary_dilation_px": float(np.median(dils)) if n else 0.0,
+            "boundary_scale": scale}

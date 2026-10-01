@@ -5,11 +5,11 @@ It was built as an independent second attempt against a fully fine-tuned SAM 3
 model from the sibling project `sam3-ft-EOSC`, on the same dataset and with the
 same scoring protocol.
 
-**Status (29 Sep 2026).**
-- **Accuracy:** SAM 3 is still ahead, but the gap is narrowing. The best Mask R-CNN
-  scores **0.218 segm AP** on the held-out test split. That is run r10: enlarge-only
-  scale jitter, copy-paste and EMA over 36 epochs. On the one split both projects share (v2 valid),
-  Mask R-CNN scores 0.196 against SAM 3's **0.238**.
+**Status (1 Oct 2026).**
+- **Accuracy:** SAM 3 is still ahead, by about 0.02 AP on the same test tiles. The
+  best Mask R-CNN scores **0.2177 segm AP** on the 1,402 held-out v2 test tiles. That
+  is run r10: enlarge-only scale jitter, copy-paste and EMA over 36 epochs. SAM 3
+  scores **0.2399** on those tiles.
 - **Cost:** Mask R-CNN is 18x smaller (46M vs 841M parameters) and trains in hours
   rather than days. At deployment it is only ~12% faster at inference.
 
@@ -38,13 +38,23 @@ in the SAM 3 project and ported in `lvm/boundary.py`.
 | **r10: as r9 with enlarge-only jitter (x1.0-1.33)** | **0.2177** | **0.164** | 0.030 | 0.723 | 64.9% |
 | merged: trained on v2 + D001 (8x the data) directly | 0.1544 | 0.086 | 0.033 | 0.696 | 58.4% |
 
-**Against SAM 3.** This compares the same v2 valid split, the same 250-tile
-mask-IoU sample and the same metric code. SAM 3 has no recorded test-split score.
+**Against SAM 3.**
 
-| | AP | mask IoU |
-|---|---|---|
-| Mask R-CNN (run 2) | 0.196 | 0.714 |
-| SAM 3, full fine-tune, 50 epochs | **0.238** | **0.734** |
+| split | Mask R-CNN | SAM 3 | gap |
+|---|---|---|---|
+| v2 test, 1,402 tiles (segm AP) | 0.2177 (r10) | **0.2399** | 0.022 |
+| v2 valid, 700 tiles (segm AP) | 0.196 (run 2) | **0.2383** | 0.042 |
+| v2 valid, 250-tile sample (matched mask IoU) | 0.714 (run 2) | **0.7341** | 0.020 |
+| boundary IoU, object-scale band (250-tile sample) | 0.186 (r10, v2 test) | **0.1944** (v2 valid) | ~0.008, different splits |
+
+- **The test comparison** uses the same 1,402 tiles. SAM 3's 0.2399 is as reported
+  by the SAM 3 project. Its run record was not found on the servers checked on
+  2026-10-01.
+- **The valid comparison** uses run 2, because r9 and r10 were not scored on valid.
+- **Boundary IoU** uses the object-scale band (median 2 px) since 2026-10-01; see
+  *Measurement conventions*. The two boundary figures are on different splits. On
+  the same test sample, r10's 0.186 is ahead of B3 (0.180) and run 2 (0.179), a
+  difference the old band could not show (`runs/boundary_object/`).
 
 **Inference speed.** Both models ran on the same L40S GPU over the same 200 tiles,
 at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`.
@@ -271,6 +281,15 @@ live on `tvs-gpu-2` under `~/work/lvm_EOSC/runs/<run>/`. Each run folder holds
   a run by 0.025-0.07 AP, and flatters noisy runs more. Score both on the full
   split.
 - **Differences under ~0.005 AP are noise** at a single seed.
+- **Boundary IoU uses SAM 3's current object-scale band.**
+  - The band is `round(0.02 × sqrt(area))` for each building, clamped to 2–15 px.
+    The median is 2 px on this data. The port is verified identical to
+    `sam3ft-fine/sam3ft/metrics.py` (commit 9e8f64e) on all six outputs.
+  - Boundary IoU figures this repo reported before 2026-10-01 used an older
+    image-scale band: 2% of the tile diagonal, which is 29 px. That band erodes most
+    buildings away entirely, so boundary IoU came out roughly equal to mask IoU.
+    Those figures are not comparable with SAM 3's. Mask IoU, AP and match rate were
+    never affected.
 - **Detector limits come from the data.**
   - Up to 305 buildings per tile, so `box_detections_per_img` is 400.
   - Anchors are 12-175 px, because the default smallest anchor (32 px) is bigger

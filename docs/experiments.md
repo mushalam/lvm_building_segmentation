@@ -68,7 +68,9 @@ Neither is evidence against more *IRC* data. That is what the 92/93/94 build use
 
 
 **Reference: SAM 3, full fine-tune (sam3-ft-EOSC).** It scores 0.2383 AP on v2
-valid, with mask IoU 0.7341. It has no v2 test score.
+valid, with mask IoU 0.7341, and **0.2399 AP on the 1,402 v2 test tiles** (as
+reported by the SAM 3 project; its run record was not found on the servers checked
+on 2026-10-01).
 
 ## Commands
 
@@ -204,8 +206,8 @@ r9 with one change: scale jitter ×1.0–1.33, enlarging only.
   augmented batches at a learning rate near zero. The EMA weights, which average
   buffers too, are unaffected, and are what every r9/r10 checkpoint loads by
   default.
-- **Against SAM 3:** 0.2383 on v2 valid against 0.2177 here on v2 test.
-  Different splits, but the gap has narrowed from ~0.037 to ~0.02.
+- **Against SAM 3:** on the same 1,402 v2 test tiles, SAM 3 scores 0.2399 and
+  r10 scores 0.2177, a gap of 0.022.
 
 ## The 92/93/94 dataset (`data_local/ign_idf`, `data_local/ign_paris_idf`)
 
