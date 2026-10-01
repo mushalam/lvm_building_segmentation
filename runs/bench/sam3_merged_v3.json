@@ -1,0 +1,48 @@
+{
+  "model": "SAM 3 fine-tune (sam3-ft-EOSC)",
+  "checkpoint": "/home/ankur/work/bench_sam3/ckpt_merged_v3/sam3_finetuned.pt",
+  "arch": {
+    "num_queries": 320
+  },
+  "parameters": 840540950,
+  "gpu": "NVIDIA L40S",
+  "torch": "2.14.0+cu126",
+  "tiles": 200,
+  "warmup": 10,
+  "runs": {
+    "eval, bf16, no threshold": {
+      "model": {
+        "mean_ms": 355.3528836462647,
+        "p50_ms": 351.61800496280193,
+        "p90_ms": 372.2913723438978,
+        "images_per_s": 2.8141040808196958
+      },
+      "end_to_end": {
+        "mean_ms": 439.2219499871135,
+        "p50_ms": 434.55661553889513,
+        "p90_ms": 464.2098743468523,
+        "images_per_s": 2.2767532452085772
+      },
+      "detections_per_image": 320.0,
+      "images_timed": 200,
+      "peak_gpu_mem_gb": 6.047649383544922
+    },
+    "deploy, bf16, score >= 0.5": {
+      "model": {
+        "mean_ms": 103.69500974193215,
+        "p50_ms": 95.4426908865571,
+        "p90_ms": 147.7866979315877,
+        "images_per_s": 9.643665616009102
+      },
+      "end_to_end": {
+        "mean_ms": 133.87644972652197,
+        "p50_ms": 122.02566210180521,
+        "p90_ms": 188.99092208594084,
+        "images_per_s": 7.469573640791673
+      },
+      "detections_per_image": 31.6,
+      "images_timed": 200,
+      "peak_gpu_mem_gb": 4.374574184417725
+    }
+  }
+}

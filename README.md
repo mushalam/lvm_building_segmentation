@@ -10,8 +10,9 @@ same scoring protocol.
   best Mask R-CNN scores **0.2177 segm AP** on the 1,402 held-out v2 test tiles. That
   is run r10: enlarge-only scale jitter, copy-paste and EMA over 36 epochs. SAM 3
   scores **0.2399** on those tiles.
-- **Cost:** Mask R-CNN is 18x smaller (46M vs 841M parameters) and trains in hours
-  rather than days. At deployment it is only ~12% faster at inference.
+- **Cost:** Mask R-CNN is 18x smaller (46M vs 841M parameters), uses about a third
+  less GPU memory at inference, and trains in hours rather than days. At deployment
+  the two run at the same speed: ~135 ms per tile on an L40S.
 
 Every experiment, including the failures, is written up in
 [`docs/experiments.md`](docs/experiments.md). The commit messages carry the full
@@ -57,14 +58,25 @@ in the SAM 3 project and ported in `lvm/boundary.py`.
   the same test sample, r10's 0.186 is ahead of B3 (0.180) and run 2 (0.179), a
   difference the old band could not show (`runs/boundary_object/`).
 
-**Inference speed.** Both models ran on the same L40S GPU over the same 200 tiles,
-at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`.
+**Inference speed.** Both models ran on the same L40S GPU over the same 200 v2 test
+tiles, at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`. Results are in
+`runs/bench/`.
 
-| | Mask R-CNN | SAM 3 |
-|---|---|---|
-| deployment (score >= 0.5), end to end | **130 ms, 7.7 tiles/s** | 148 ms, 6.8 tiles/s |
-| scoring (no threshold), end to end | **246 ms** (205 ms fp16) | 437 ms |
-| peak GPU memory, deployment | **2.9 GB** | 4.4 GB |
+| | Mask R-CNN r10 | SAM 3 `merged_v3` | SAM 3 `v2_frozen` |
+|---|---|---|---|
+| deployment (score ≥ 0.5), end to end | 138 ms, 7.2 tiles/s | **134 ms, 7.5 tiles/s** | 148 ms, 6.8 tiles/s |
+| model step alone, deployment | 103 ms | 104 ms | 117 ms |
+| masks returned per tile, deployment | 67 | 32 | 48 |
+| scoring (no threshold), end to end | **257 ms** (217 ms fp16) | 439 ms | 437 ms |
+| peak GPU memory, deployment | **3.0 GB** | 4.4 GB | 4.4 GB |
+
+- **At deployment the two families are at parity.** The model step is ~103 ms for
+  both. End-to-end time follows how many masks come back, since each is
+  thresholded and copied to the CPU.
+- **Without a threshold, Mask R-CNN is ~2x faster.** That is mostly SAM 3's
+  `predict_one` copying 320 float32 probability maps per tile.
+- **Mask R-CNN's real efficiency edge is memory and training cost**, not
+  deployment speed.
 
 **What the experiments established.** The strongest findings are listed first.
 [`docs/experiments.md`](docs/experiments.md) has the evidence for each.
