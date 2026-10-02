@@ -252,3 +252,53 @@ it works, the final raw weights become usable and the EMA's role is better
 understood. BD TOPO's new edition for Île-de-France is out, which matters for
 the 92/93/94 data plan. Use edition 263 for any new départements, and check
 whether Paris's labels change. Nothing changes the priority order otherwise.
+
+---
+
+## 2026-10-02
+
+**Searched.** The window is since the 10-01 entry. The cs.CV feed was last updated
+2026-10-02T08:31Z, newest submission 10-01 17:59 UTC, so this covers late 09-30
+and all of 10-01. The searches ran the usual arXiv API queries, IGN Atom/WMTS
+probes and GitHub activity checks, plus one new topic: late memorisation of noisy
+masks, prompted by the raw-weight collapse in r9/r10 but not r11.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| Building / dense small-object instance segmentation | — | **Nothing new**. Only off-task aerial items (2609.40212, 2610.01870, 2610.00693) | — |
+| [SAM3-ASH / Generalized Presence Token](https://arxiv.org/abs/2610.01022) | 10-01 | Batches N text prompts so SAM 3 encodes the image once. MOTS20 SOTA zero-shot, peak memory under 25 GB | `skip`: video/tracking inference; we use one prompt |
+| [MoSA](https://arxiv.org/abs/2609.39785) | 09-30 | Unsupervised segment-anything from motion pseudo-labels, "comparable to supervised SAM" zero-shot | `skip` |
+| sam3 / sam2 / detectron2 repos | — | No commits or releases since 09-29 (detectron2: CI only) | — |
+| Alignment, noisy labels, true ortho (new work) | — | **Nothing new** | — |
+| **BD TOPO 263 for D075** | posted 10-01 | `BDTOPO_3-5_TOUSTHEMES_GPKG_LAMB93_D075_2026-09-15` (210.6 MB .7z) is now on data.geopf.fr. SHP not yet | `act`, optional: diff against v2's 06-15 labels to measure label drift. It cannot change the benchmark, since test labels are fixed |
+| Ortho-Express | 10-02 | `IRC-EXPRESS.2026` tiles return 404 over central Paris, the 11e and Saint-Denis, while Rennes returns imagery. Sampled points only | `watch`: still no Paris |
+| [RankSEG with spatial dependence](https://arxiv.org/abs/2609.38930) | 09-30 | Inference-time Dice/IoU-optimal decoding in O(d log d), no retraining; largest gains claimed on small/low-contrast objects; code released. Semantic segmentation only, no figures in the abstract | `watch`: applying it to per-instance mask logits would be our own untested extension |
+| [GRACE](https://arxiv.org/abs/2610.01409) | 10-01 | Post-hoc box uncertainty under adversarial attack | `skip` |
+
+**Late memorisation of noisy masks.** These sources are older than the window.
+- **[Benchmarking Label Noise in Instance Segmentation (COCO-N)](https://arxiv.org/abs/2406.10891) (2024).**
+  - Mask R-CNN R50 mask AP falls from 34.6 to 31.8 / 30.3 / 28.4 under easy, medium
+    and hard *spatial* mask noise. Boundary AP falls 20.6 → 16.3.
+  - Box AP drops less than mask AP.
+  - A symmetric cross-entropy loss recovers only +0.5 mAP.
+  - `act`, as a reference point: it is a direct benchmark of our failure mode. It
+    predicts that off-the-shelf noise-robust losses will barely help, so they are
+    not worth a run on their own.
+- **[ADELE](https://arxiv.org/abs/2110.03740) (CVPR 2022, [code](https://github.com/Kangningthu/ADELE)).**
+  - Fits a curve to each class's *training* IoU. When its slope has fallen past a
+    threshold, it starts correcting labels with the model's own predictions, plus a
+    multi-scale consistency term.
+  - VOC weakly supervised: 71.6 / 72.0 mIoU.
+  - `watch`: its training-IoU slope is a cheap detector of memorisation onset, and
+    could set early stopping or a learning-rate floor for long runs. Transfer to
+    instance masks is our inference.
+- [ELR](https://arxiv.org/abs/2007.00151): the base early-learning regulariser
+  ADELE builds on. Background.
+
+**Takeaway.**
+- **Nothing new changes the plan.**
+- **The memorisation literature explains r9/r10's late raw collapse,** with ADELE's
+  slope test as a way to detect it. COCO-N says not to expect much from a
+  noise-robust loss alone.
+- **The fresh D075 labels give an optional measurement:** how much do Paris's
+  footprints move between editions?
