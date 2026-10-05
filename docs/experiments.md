@@ -47,6 +47,7 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | r9 | `r9_aug_long` | Run 2 + scale jitter x0.75-1.33 + background copy-paste + EMA, 36 epochs | 0.2146 (ep16) / 0.2114 (ep36), 200-tile subset | **0.2070** / best.pt 0.2016 (raw last 0.1702) | **New best, +0.006.** Augmentation makes the long schedule pay off. AP75 +0.012, matched 62→65.6%, but AP_small 0.034→0.023. EMA essential (+0.037 over raw) |
 | r10 | `r10_jitter_up` | r9 with enlarge-only jitter (x1.0-1.33): is the x0.75 shrink what cost AP_small? | 0.2303 (ep30) / 0.2268 (ep36), 200-tile subset | **0.2177** / last 0.2144 (raw last 0.1623) | **New best, +0.011 over r9.** AP_small back to 0.030 (r9 0.023), AP50 +0.026. EMA essential again |
 | r11 | `r11_paris_idf` | r10's recipe on v2 + 92/93/94 IRC (13,032 tiles), 14 epochs = matched steps (~91k vs 88k) | 0.2229 (ep10) / 0.2200 (ep14), 200-tile subset | 0.2143 / last 0.2107 (raw last 0.2124) | **No gain (−0.003, noise level).** 2x the buildings with v2's convention does not move Paris test AP. AP_large +0.012, AP75 −0.010. Raw weights did *not* collapse |
+| r10b | `r10b_seed1` | r10 repeated at `--seed 1`: how much of r10's lead is run-to-run noise? | 0.2319 (ep30) / 0.2286 (ep36), 200-tile subset | 0.2157 / last 0.2151 (raw last 0.1894) | **r10 reproduces.** Test within 0.002 of r10 on every metric; two-seed mean 0.2167. Test noise ~±0.002 |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
@@ -335,3 +336,27 @@ Mask Scoring R-CNN's Table 7, measured here before building anything.
   But a fraction of +0.096 exceeds the 0.022 gap to SAM 3.
 - This **answers the gate** set in the 2026-10-05 plan: Mask Scoring R-CNN is worth
   implementing.
+
+## r10b: is r10 reproducible?
+
+r10's exact settings with `--seed 1`; r10 itself was unseeded. v2 test, 1,402
+tiles:
+
+| run | weights | AP | AP75 | AP_small | AR | mask IoU | boundary IoU | matched |
+|---|---|---|---|---|---|---|---|---|
+| r10 | best.pt (epoch 30) | 0.2177 | 0.1637 | 0.0295 | 0.3436 | 0.7226 | 0.1862 | 64.9% |
+| r10b | best.pt (epoch 30) | 0.2157 | 0.1608 | 0.0269 | 0.3424 | 0.7219 | 0.1862 | 65.1% |
+| r10 | last.pt, EMA | 0.2144 | 0.1607 | 0.0298 | 0.3379 | 0.7220 | — | 64.0% |
+| r10b | last.pt, EMA | 0.2151 | 0.1608 | 0.0302 | — | 0.7216 | 0.1865 | — |
+| r10b | last.pt, raw | 0.1894 | 0.1422 | 0.0157 | — | 0.7216 | 0.1872 | — |
+
+**What it shows:**
+- **The recipe reproduces.** The two seeds differ by 0.002 AP on test and by about
+  0.003 or less on every other measure. The two-seed mean is **0.2167**. r10's gains
+  over r9 (+0.011) and the old plateau (+0.017) are solid.
+- **Test noise between runs is about ±0.002 AP.** Use this as the yardstick: a change
+  should clear ~0.005 before it is called real.
+- **The validation subset misleads again.** r10b peaked higher on validation (0.2319
+  against 0.2303), yet scored lower on test.
+- **The raw final-epoch drop recurs** (0.189), milder than r10's 0.162. EMA weights
+  are unaffected.
