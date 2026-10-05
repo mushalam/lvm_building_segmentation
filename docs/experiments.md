@@ -310,3 +310,28 @@ against r10's 88k. Validated on v2 valid, which is clean for this run.
   0.2124 against EMA 0.2107, with identical batch size and BN settings. This favours
   the "memorising noisy labels at a low learning rate" explanation (Morales-Brotons
   et al., literature review 2026-10-01) over BN-statistics noise alone.
+
+## Rescoring ceiling (oracle), r10 best.pt
+
+`tools/oracle_rescore.py` takes r10's detections on all 1,402 v2 test tiles and
+re-ranks them by their **true** mask IoU with the best-matching ground truth. Masks
+and detection set stay identical; only the ranking changes. This is the oracle of
+Mask Scoring R-CNN's Table 7, measured here before building anything.
+
+| ranking | AP | AP50 | AP75 | AP_small | AR |
+|---|---|---|---|---|---|
+| model's own scores | 0.2176 | 0.4958 | 0.1636 | 0.0295 | 0.3436 |
+| true mask IoU (pure ceiling) | **0.3339** | 0.6308 | **0.3176** | 0.1415 | 0.3503 |
+| score × true IoU (perfect Mask Scoring head) | **0.3135** | 0.6278 | 0.2794 | 0.1059 | 0.3503 |
+
+**What it shows:**
+- **The model already produces good outlines but ranks them badly.** A perfect
+  quality head would add +0.096 AP and nearly double AP75.
+- **The ceiling is far larger than on COCO,** where the Mask Scoring paper's oracle
+  added +2.2–2.6 AP beyond its learned head. The likely reason is dense scenes,
+  where high-confidence but poorly outlined detections crowd the ranking.
+- **A learned head recovers only part of an oracle.** On COCO it got about a third.
+  On WHU buildings, Mask Scoring R-CNN gave +1.3 AP (literature review 2026-10-05).
+  But a fraction of +0.096 exceeds the 0.022 gap to SAM 3.
+- This **answers the gate** set in the 2026-10-05 plan: Mask Scoring R-CNN is worth
+  implementing.
