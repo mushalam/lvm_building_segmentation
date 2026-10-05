@@ -302,3 +302,66 @@ masks, prompted by the raw-weight collapse in r9/r10 but not r11.
   noise-robust loss alone.
 - **The fresh D075 labels give an optional measurement:** how much do Paris's
   footprints move between editions?
+
+---
+
+## 2026-10-05
+
+**Searched.** The window is 2026-10-02 to 10-05. The feed was last updated
+2026-10-05T08:17Z, newest submission 10-02 17:58Z. Friday-afternoon and weekend
+submissions arrive in Tuesday's batch, so **the next entry should re-check 10-02
+to 10-05**. The arXiv API was queried by submission date. The boolean queries
+misparsed, so the newest 600 cs.CV/eess.IV submissions and the 600 most recently
+updated cs.CV papers were also keyword-filtered. Web, IGN and GitHub checks as
+usual. New this time: evidence on the four candidate next steps.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| Building / dense small-object instance segmentation | — | **Nothing new** (nearest: [SigLIP2 aerial fire-risk classification](https://arxiv.org/abs/2610.03689), classification only) | — |
+| [When Predicting Nothing Beats SAM 3](https://arxiv.org/abs/2610.02946) | 10-02 | An empty-mask predictor beats SAM 3 on VOS J&F when targets are rarely visible; proposes Volumetric J&F | `skip`: video evaluation |
+| [ViTok multi-teacher distillation](https://arxiv.org/abs/2610.02903) | 10-02 | SigLIP2 + DINOv3-L teachers; PHI-S balancing recovers ADE20K 46.5 → 48.5 mIoU | `skip`: backbone pretraining |
+| [3D dendrite instance segmentation](https://arxiv.org/abs/2610.03332) | 10-02 | YOLO prompts SAM, nnU-Net refines (Dice 0.93); dense regions are the main failure | `skip`: microscopy |
+| sam3 repo | — | No commits since 09-18; SAM 3.1 is still the latest | — |
+| Alignment / noisy labels / true ortho (new work) | — | **Nothing new** | — |
+| IGN Ortho-Express 2026 ([OSM-FR thread](https://forum.openstreetmap.fr/t/ign-ortho-express-2026/41923), pp. 4–5) | 09-30 → 10-02 | Added 22, 25, 61 (complete) and 69. Aircraft reportedly not flown since 08-23. **Still no Paris, 92, 93 or 94** | `watch` |
+| LiDAR HD, BD ORTHO | — | Nothing dated in the window | — |
+| COCO/LVIS small-object or boundary methods | — | **Nothing new** | — |
+
+**Evidence on the candidate next steps.** These sources are older than the window.
+- **[RSPrompter](https://arxiv.org/abs/2306.16269) Table I, WHU aerial buildings**
+  (read from the PDF).
+
+  | model | mask AP | AP75 |
+  |---|---|---|
+  | Mask R-CNN | 65.6 | 76.7 |
+  | **Mask Scoring R-CNN** | 66.9 (+1.3) | 77.5 (+0.8) |
+  | Mask2Former | 69.2 (+3.6) | 79.3 |
+  | **frozen SAM backbone + Mask R-CNN heads** | 70.1 (+4.5) | 81.0 |
+  | RSPrompter-query | 72.5 | 82.9 |
+
+  On the much smaller NWPU dataset, Mask2Former was *worse* than Mask R-CNN (58.8
+  against 59.7).
+
+  `watch`: this roughly ranks the candidates *on buildings*.
+  - Mask-IoU rescoring is a small gain, below its COCO figure.
+  - A query-based detector helps on sparse 0.3 m imagery but is not robust on small
+    data.
+  - SAM features carry the most, which is indirect support for distilling from
+    SAM 3.
+
+  WHU is sparse and clean, unlike dense Paris.
+- **[OMAF: weakly supervised object-level offset correction for misaligned building labels](https://openaccess.thecvf.com/content/CVPR2026/html/Xu_Revisiting_the_Necessity_of_Full_Accuracy_Weakly_Supervised_Object-Level_Offset_CVPR_2026_paper.html) (CVPR 2026).**
+  - Per-building offset correction of footprint labels on non-orthorectified
+    imagery, with under 1% of the data hand-annotated.
+  - Gains of up to +40.6 mIoU: UNetFormer 35.8 → 76.4 on Islahiye; DeepLabV3+
+    +17.9.
+  - Semantic mIoU only, not instance AP. The numbers come from a notes page and the
+    CVF snippet, not the full PDF, and the cited repo returned 404.
+  - `watch`: the strongest published evidence that re-aligning footprint labels
+    pays. The caveat from 09-29 stands: our test labels stay misaligned.
+
+**Takeaway.** It supports the order already proposed:
+1. Gate Mask Scoring R-CNN on an oracle-rescoring check. On buildings its gain is
+   ~+1.3 AP, not COCO's +2.1 AP75.
+2. Rank SAM 3 distillation above a query-based detector. SAM features gave the
+   largest gain on WHU, and Mask2Former was unreliable on small data.
