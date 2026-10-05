@@ -60,7 +60,8 @@ def main():
     print(f"  backbone {bb} (from checkpoint)")
     model = build_model(max(args.max_dets, 400), image_size=size,
                         backbone=bb,
-                        scratch_heads=ck.get("scratch_heads", False)).to(device)
+                        scratch_heads=ck.get("scratch_heads", False),
+                        mask_scoring=ck.get("mask_scoring", False)).to(device)
     key = "model_raw" if args.weights == "raw" else "model"
     assert key in ck, f"{args.ckpt} has no '{key}' (trained without --ema?)"
     print(f"  weights '{key}'" + (f" (EMA decay {ck['ema']})" if ck.get("ema") else ""))

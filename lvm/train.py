@@ -41,7 +41,7 @@ def anchor_sizes_for(image_size):
 
 
 def build_model(detections_per_img=400, trainable_layers=5, image_size=1024,
-                backbone="resnet50", scratch_heads=False):
+                backbone="resnet50", scratch_heads=False, mask_scoring=False):
     """scratch_heads is the control for the DINOv3 arms.
 
     torchvision ships maskrcnn_resnet50_fpn_v2 with COCO-pretrained FPN, RPN
@@ -53,6 +53,7 @@ def build_model(detections_per_img=400, trainable_layers=5, image_size=1024,
     only in which trunk they carry.
     """
     if backbone != "resnet50":
+        assert not mask_scoring, "mask scoring is wired for the resnet50 path only"
         from lvm.backbones import build_timm_maskrcnn
         return build_timm_maskrcnn(
             backbone, anchor_sizes_for(image_size),
@@ -83,6 +84,9 @@ def build_model(detections_per_img=400, trainable_layers=5, image_size=1024,
     model.roi_heads.box_predictor = FastRCNNPredictor(in_feat, 2)
     in_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
     model.roi_heads.mask_predictor = MaskRCNNPredictor(in_mask, 256, 2)
+    if mask_scoring:
+        from lvm.maskscoring import add_mask_scoring
+        add_mask_scoring(model)
     return model
 
 
@@ -166,6 +170,13 @@ def main():
     ap.add_argument("--val-every", type=int, default=1,
                     help="validate every N epochs (and always on the last). "
                          "last.pt is still written every epoch")
+    ap.add_argument("--mask-scoring", action="store_true",
+                    help="add a MaskIoU head (Mask Scoring R-CNN, lvm.maskscoring); detections "
+                         "are then scored class score x predicted mask IoU")
+    ap.add_argument("--freeze-except-maskiou", action="store_true",
+                    help="train only the MaskIoU head: every other weight frozen and every "
+                         "BatchNorm kept in eval mode, so --init-from's detections are "
+                         "unchanged and only their ranking can move")
     ap.add_argument("--seed", type=int, default=None,
                     help="seed python/numpy/torch RNGs (and so data order, augmentation "
                          "and head init). Unset keeps the old behaviour: runs before r10b "
@@ -219,6 +230,16 @@ def main():
         print(f"  initialised from {args.init_from} "
               f"(epoch {ck.get('epoch', '?')}, {len(sd)} tensors, "
               f"{len(missing)} missing)", flush=True)
+    if args.mask_scoring:
+        # wrapped after --init-from so a plain Mask R-CNN checkpoint loads first
+        from lvm.maskscoring import add_mask_scoring
+        add_mask_scoring(model); model.to(device)
+        print("  mask scoring: MaskIoU head added", flush=True)
+    assert not args.freeze_except_maskiou or args.mask_scoring, "--freeze-except-maskiou needs --mask-scoring"
+    if args.freeze_except_maskiou:
+        for n_, p_ in model.named_parameters():
+            p_.requires_grad = n_.startswith("roi_heads.maskiou_head.")
+    bns = [m for m in model.modules() if isinstance(m, torch.nn.modules.batchnorm._BatchNorm)]
     n_tr = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"model: {sum(p.numel() for p in model.parameters())/1e6:.0f}M parameters, "
           f"{n_tr/1e6:.0f}M trainable")
@@ -242,6 +263,9 @@ def main():
     history, best = [], -1.0
     for epoch in range(args.epochs):
         model.train(); t0 = time.time(); running = 0.0
+        if args.freeze_except_maskiou:
+            for m in bns:
+                m.eval()                     # frozen statistics, not just frozen weights
         for step, (imgs, targets) in enumerate(tl):
             imgs = [i.to(device, non_blocking=True) for i in imgs]
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -291,7 +315,8 @@ def main():
                 "metrics": m, "anchors": ANCHORS,
                 "image_size": args.image_size, "backbone": args.backbone,
                 "d4": args.d4, "scratch_heads": args.scratch_heads,
-                "ema": args.ema, "scale_jitter": jitter, "copy_paste": args.copy_paste}
+                "ema": args.ema, "scale_jitter": jitter, "copy_paste": args.copy_paste,
+                "mask_scoring": args.mask_scoring}
         if ema is not None:
             ckpt["model_raw"] = model.state_dict()
         # Always keep the newest weights. `best` is chosen on --val-images,

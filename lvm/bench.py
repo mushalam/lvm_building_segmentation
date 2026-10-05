@@ -70,7 +70,8 @@ def main():
     ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
     model = build_model(400, image_size=ck.get("image_size", 1024),
                         backbone=ck.get("backbone", "resnet50"),
-                        scratch_heads=ck.get("scratch_heads", False))
+                        scratch_heads=ck.get("scratch_heads", False),
+                        mask_scoring=ck.get("mask_scoring", False))
     model.load_state_dict(ck["model"]); model.cuda().eval()
     n_params = sum(p.numel() for p in model.parameters())
 

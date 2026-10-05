@@ -38,7 +38,8 @@ def load_model(ckpt_path, weights, device):
     assert key in ck, f"{ckpt_path} has no '{key}' (trained without --ema?)"
     model = build_model(400, image_size=ck.get("image_size", 1024),
                         backbone=ck.get("backbone", "resnet50"),
-                        scratch_heads=ck.get("scratch_heads", False))
+                        scratch_heads=ck.get("scratch_heads", False),
+                        mask_scoring=ck.get("mask_scoring", False))
     model.load_state_dict(ck[key])
     return model.to(device).eval(), ck
 

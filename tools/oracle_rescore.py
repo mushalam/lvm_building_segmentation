@@ -45,7 +45,8 @@ def main():
     ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
     key = "model_raw" if args.weights == "raw" else "model"
     model = build_model(400, image_size=ck["image_size"], backbone=ck.get("backbone", "resnet50"),
-                        scratch_heads=ck.get("scratch_heads", False))
+                        scratch_heads=ck.get("scratch_heads", False),
+                        mask_scoring=ck.get("mask_scoring", False))
     model.load_state_dict(ck[key]); model.to(args.device).eval()
     gt = load_gt(str(Path(args.data) / args.split / "_annotations.coco.json"))
     ds = BuildingDataset(args.data, args.split, train=False)
