@@ -166,7 +166,16 @@ def main():
     ap.add_argument("--val-every", type=int, default=1,
                     help="validate every N epochs (and always on the last). "
                          "last.pt is still written every epoch")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="seed python/numpy/torch RNGs (and so data order, augmentation "
+                         "and head init). Unset keeps the old behaviour: runs before r10b "
+                         "were unseeded, so a repeat measures run-to-run variance")
     args = ap.parse_args()
+    if args.seed is not None:
+        import random
+        import numpy as np
+        random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed)
+        print(f"  seed {args.seed}", flush=True)
     jitter = tuple(float(v) for v in args.scale_jitter.split(",")) if args.scale_jitter else None
     assert jitter is None or (len(jitter) == 2 and 0 < jitter[0] <= 1 <= jitter[1]), \
         f"--scale-jitter must be 'lo,hi' with lo <= 1 <= hi, got {args.scale_jitter}"
