@@ -97,7 +97,7 @@ tiles, at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`. Results are in
    oracle shows a ceiling of +0.096, so most of the headroom remains.
    - More data with v2's own label convention (92/93/94, 2x the buildings) did
      **not** help: r11 scores 0.214 (r10 0.218).
-2. **The labels are probably the main limit, for every model.**
+3. **The labels are probably the main limit, for every model.**
    - They are BD TOPO footprints, 96-99% of them derived from the land registry in
      central Paris.
    - They are drawn at the walls and split at property boundaries.
@@ -105,7 +105,7 @@ tiles, at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`. Results are in
      roofs lean several metres off their footprints.
 
    See [Known caveats](#known-caveats).
-3. **These made no difference or made things worse:**
+4. **These made no difference or made things worse:**
    - longer training *without* augmentation (it overfits after ~12-16 epochs)
    - D4 augmentation, both in training and at test time
    - a DINOv3 backbone
@@ -113,8 +113,8 @@ tiles, at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`. Results are in
    - a finer mask grid
    - adding rural data (-0.046 AP)
    - French pretraining (a tie)
-4. **Weight EMA is a small, real gain:** +0.004 AP.
-5. **Tight outlines are not held back by the 28x28 mask grid.** With perfect boxes
+5. **Weight EMA is a small, real gain:** +0.004 AP.
+6. **Tight outlines are not held back by the 28x28 mask grid.** With perfect boxes
    the grid alone reaches IoU 0.928. Matched buildings average 0.71.
 
 ---
