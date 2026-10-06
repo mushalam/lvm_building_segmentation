@@ -1,0 +1,56 @@
+=== GPU 1 before: 0 MiB  2026-10-05 23:54 ===
+=== training exited 2026-10-06 00:33 ===
+epoch 3: AP 0.2401 AP50 0.5191 AP75 0.1976 AP_small 0.0338 mask IoU 0.7316 matched 0.643 (11.3 min)
+  new best, saved
+done. best AP 0.2401
+=== best.pt on v2 test  00:33 ===
+{
+  "AP": 0.23073913222921164,
+  "AP50": 0.5118129908856222,
+  "AP75": 0.17748850530811808,
+  "AP_small": 0.04536243128545749,
+  "AP_medium": 0.319028969772689,
+  "AP_large": 0.37298260798667565,
+  "AR": 0.3446059298179771,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.1858906726027049,
+  "matched_mask_iou": 0.7242768603898351,
+  "boundary_matched": 13174,
+  "boundary_match_rate": 0.6373796506846001,
+  "boundary_images": 250,
+  "boundary_dilation_px": 2.0,
+  "boundary_scale": "object",
+  "checkpoint": "runs/ms1_head_only/best.pt",
+  "weights": "model",
+  "tta": "none",
+  "split": "test",
+  "images": 1402
+}
+=== last.pt on v2 test  00:56 ===
+{
+  "AP": 0.23073913222921164,
+  "AP50": 0.5118129908856222,
+  "AP75": 0.17748850530811808,
+  "AP_small": 0.04536243128545749,
+  "AP_medium": 0.319028969772689,
+  "AP_large": 0.37298260798667565,
+  "AR": 0.3446059298179771,
+  "max_dets": 300,
+  "n_results": 560800,
+  "n_images_scored": 1402,
+  "boundary_iou": 0.1858906726027049,
+  "matched_mask_iou": 0.7242768603898351,
+  "boundary_matched": 13174,
+  "boundary_match_rate": 0.6373796506846001,
+  "boundary_images": 250,
+  "boundary_dilation_px": 2.0,
+  "boundary_scale": "object",
+  "checkpoint": "runs/ms1_head_only/last.pt",
+  "weights": "model",
+  "tta": "none",
+  "split": "test",
+  "images": 1402
+}
+=== all done 2026-10-06 01:19 ===

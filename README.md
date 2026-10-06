@@ -5,11 +5,12 @@ It was built as an independent second attempt against a fully fine-tuned SAM 3
 model from the sibling project `sam3-ft-EOSC`, on the same dataset and with the
 same scoring protocol.
 
-**Status (1 Oct 2026).**
-- **Accuracy:** SAM 3 is still ahead, by about 0.02 AP on the same test tiles. The
-  best Mask R-CNN scores **0.2177 segm AP** on the 1,402 held-out v2 test tiles. That
-  is run r10: enlarge-only scale jitter, copy-paste and EMA over 36 epochs. SAM 3
-  scores **0.2399** on those tiles.
+**Status (6 Oct 2026).**
+- **Accuracy:** SAM 3 is still ahead, by 0.009 AP on the same test tiles. The best
+  Mask R-CNN scores **0.2307 segm AP** on the 1,402 held-out v2 test tiles. That is
+  r10 (enlarge-only scale jitter, copy-paste, EMA, 36 epochs) plus a Mask Scoring
+  head that re-ranks detections by predicted mask quality. SAM 3 scores
+  **0.2399** on those tiles.
 - **Cost:** Mask R-CNN is 18x smaller (46M vs 841M parameters), uses about a third
   less GPU memory at inference, and trains in hours rather than days. At deployment
   the two run at the same speed: ~135 ms per tile on an L40S.
@@ -36,8 +37,9 @@ in the SAM 3 project and ported in `lvm/boundary.py`.
 | B3: pretrained on a public building corpus first | 0.2010 | 0.143 | **0.039** | 0.715 | 62.0% |
 | B4: pretrained on French IGN merged data first, weight EMA | 0.2011 | 0.145 | 0.030 | 0.719 | 62.4% |
 | r9: run 2 + scale jitter (x0.75-1.33) + copy-paste + EMA, 36 epochs | 0.2070 | 0.157 | 0.023 | **0.725** | **65.6%** |
-| **r10: as r9 with enlarge-only jitter (x1.0-1.33)** | **0.2177** | **0.164** | 0.030 | 0.723 | 64.9% |
+| r10: as r9 with enlarge-only jitter (x1.0-1.33) | 0.2177 | 0.164 | 0.030 | 0.723 | 64.9% |
 | r10b: r10 repeated with `--seed 1` (reproducibility check) | 0.2157 | 0.161 | 0.027 | 0.722 | 65.1% |
+| **ms1: r10 + Mask Scoring head (head-only training, 39 min)** | **0.2307** | **0.178** | **0.045** | **0.724** | 63.7% |
 | r11: r10's recipe on v2 + 92/93/94 (2x the buildings), matched steps | 0.2143 | 0.154 | 0.029 | 0.718 | **65.9%** |
 | merged: trained on v2 + D001 (8x the data) directly | 0.1544 | 0.086 | 0.033 | 0.696 | 58.4% |
 
@@ -45,7 +47,7 @@ in the SAM 3 project and ported in `lvm/boundary.py`.
 
 | split | Mask R-CNN | SAM 3 | gap |
 |---|---|---|---|
-| v2 test, 1,402 tiles (segm AP) | 0.2177 (r10) | **0.2399** | 0.022 |
+| v2 test, 1,402 tiles (segm AP) | 0.2307 (ms1 = r10 + Mask Scoring head) | **0.2399** | 0.009 |
 | v2 valid, 700 tiles (segm AP) | 0.196 (run 2) | **0.2383** | 0.042 |
 | v2 valid, 250-tile sample (matched mask IoU) | 0.714 (run 2) | **0.7341** | 0.020 |
 | boundary IoU, object-scale band (250-tile sample) | 0.186 (r10, v2 test) | **0.1944** (v2 valid) | ~0.008, different splits |
@@ -90,6 +92,9 @@ tiles, at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`. Results are in
    - Before r9, run 2, B3 and B4 landed within 0.0005 of each other.
    - r10 reproduces: a second seed (r10b) scores 0.2157, within 0.002, for a
      two-seed mean of 0.2167.
+2. **Re-ranking by predicted mask quality adds +0.013.** A Mask Scoring head
+   trained for 39 minutes on frozen r10 reaches 0.2307 (AP_small +52%). An
+   oracle shows a ceiling of +0.096, so most of the headroom remains.
    - More data with v2's own label convention (92/93/94, 2x the buildings) did
      **not** help: r11 scores 0.214 (r10 0.218).
 2. **The labels are probably the main limit, for every model.**
@@ -245,7 +250,8 @@ live on `tvs-gpu-2` under `~/work/lvm_EOSC/runs/<run>/`. Each run folder holds
 
 | use | checkpoint |
 |---|---|
-| best overall (test 0.2177) | `runs/r10_jitter_up/best.pt` (EMA weights; the raw weights score far lower, so use the default) |
+| best overall (test 0.2307) | `runs/ms1_head_only/best.pt` (r10 + Mask Scoring head; every tool rebuilds the head from the checkpoint) |
+| best without the Mask Scoring head (test 0.2177) | `runs/r10_jitter_up/best.pt` (EMA weights; the raw weights score far lower, so use the default) |
 | best on small buildings (AP_small 0.039) | `runs/stageB3_long/best.pt` |
 | best trained on v2 alone, simplest | `runs/maskrcnn_v2_hires/best.pt` (run 2, test 0.2006) |
 

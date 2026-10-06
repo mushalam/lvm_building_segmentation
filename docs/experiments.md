@@ -48,6 +48,7 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | r10 | `r10_jitter_up` | r9 with enlarge-only jitter (x1.0-1.33): is the x0.75 shrink what cost AP_small? | 0.2303 (ep30) / 0.2268 (ep36), 200-tile subset | **0.2177** / last 0.2144 (raw last 0.1623) | **New best, +0.011 over r9.** AP_small back to 0.030 (r9 0.023), AP50 +0.026. EMA essential again |
 | r11 | `r11_paris_idf` | r10's recipe on v2 + 92/93/94 IRC (13,032 tiles), 14 epochs = matched steps (~91k vs 88k) | 0.2229 (ep10) / 0.2200 (ep14), 200-tile subset | 0.2143 / last 0.2107 (raw last 0.2124) | **No gain (−0.003, noise level).** 2x the buildings with v2's convention does not move Paris test AP. AP_large +0.012, AP75 −0.010. Raw weights did *not* collapse |
 | r10b | `r10b_seed1` | r10 repeated at `--seed 1`: how much of r10's lead is run-to-run noise? | 0.2319 (ep30) / 0.2286 (ep36), 200-tile subset | 0.2157 / last 0.2151 (raw last 0.1894) | **r10 reproduces.** Test within 0.002 of r10 on every metric; two-seed mean 0.2167. Test noise ~±0.002 |
+| ms1 | `ms1_head_only` | Mask Scoring: train only a MaskIoU head on frozen r10, 4 epochs; score = cls × predicted IoU | 0.2401 (ep4), 200-tile subset | **0.2307** (best = last) | **New best, +0.013 over r10** from re-ranking alone. AP_small 0.030→0.045, AP75 +0.014. ~14% of the oracle ceiling |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
@@ -360,3 +361,30 @@ tiles:
   against 0.2303), yet scored lower on test.
 - **The raw final-epoch drop recurs** (0.189), milder than r10's 0.162. EMA weights
   are unaffected.
+
+## ms1: Mask Scoring head on frozen r10
+
+`lvm/maskscoring.py`, trained with `--mask-scoring --freeze-except-maskiou` from
+`runs/r10_jitter_up/best.pt`: 4 epochs, r10's augmentation, 16M trainable of 62M,
+39 minutes on one L40S. Every other weight and every BatchNorm statistic is
+frozen, so boxes and masks are exactly r10's. Only the scores change, to class
+score × predicted mask IoU.
+
+**Test (v2, 1,402 tiles):**
+
+| | AP | AP50 | AP75 | AP_small | AP_medium | AP_large | AR | mask IoU |
+|---|---|---|---|---|---|---|---|---|
+| r10 best.pt, own scores | 0.2177 | 0.4958 | 0.1637 | 0.0295 | 0.3141 | 0.3654 | 0.3436 | 0.7226 |
+| **ms1 (r10 + MaskIoU head)** | **0.2307** | **0.5118** | **0.1775** | **0.0454** | **0.3190** | **0.3730** | **0.3446** | **0.7243** |
+| oracle: score × true IoU | 0.3135 | 0.6278 | 0.2794 | 0.1059 | — | — | 0.3503 | — |
+
+**What it shows:**
+- **+0.013 AP from ranking alone,** six times the ±0.002 run-to-run noise
+  measured by r10b. Small buildings gain the most: AP_small +52%. The head demotes
+  confident detections with poor outlines.
+- **The learned head recovers ~14% of the oracle ceiling** (0.013 of 0.096), so
+  most of that headroom remains.
+- **The gap to SAM 3** (0.2399 on the same tiles) narrows from 0.022 to **0.009**.
+- **Not saturated.** Validation was still rising at the last epoch (0.2381 →
+  0.2401). Next: train the head longer, then train the full model jointly with
+  the head (the paper's setup) on r10's recipe.
