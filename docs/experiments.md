@@ -50,6 +50,7 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | r10b | `r10b_seed1` | r10 repeated at `--seed 1`: how much of r10's lead is run-to-run noise? | 0.2319 (ep30) / 0.2286 (ep36), 200-tile subset | 0.2157 / last 0.2151 (raw last 0.1894) | **r10 reproduces.** Test within 0.002 of r10 on every metric; two-seed mean 0.2167. Test noise ~±0.002 |
 | ms1 | `ms1_head_only` | Mask Scoring: train only a MaskIoU head on frozen r10, 4 epochs; score = cls × predicted IoU | 0.2401 (ep4), 200-tile subset | **0.2307** (best = last) | **New best, +0.013 over r10** from re-ranking alone. AP_small 0.030→0.045, AP75 +0.014. ~14% of the oracle ceiling |
 | ms1b | `ms1b_head_long` | ms1 for 12 epochs (3x), `--seed 1` | 0.2412 (ep10/12), 200-tile subset | 0.2298 (best = last) | **No gain over ms1 (−0.001, noise).** Validation +0.001 over ms1, test flat. The head-only route is saturated at ~0.230 |
+| ms2 | `ms2_joint` | r10's recipe from COCO with the MaskIoU head trained jointly (the paper's setup), EMA, 36 epochs | 0.2409 (ep28) / 0.2376 (ep36), 200-tile subset | 0.2310 / last 0.2264 (raw last 0.2285) | **Ties ms1 (+0.0003).** Joint training adds nothing over bolting the head onto r10. Raw last weights did not collapse (0.2285 vs r10's 0.162) |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
@@ -405,3 +406,39 @@ Test is unchanged (−0.0009, inside the ±0.002 noise). A head on frozen r10 fe
 tops out at ~0.230. It recovers ~14% of the oracle ceiling however long it trains.
 The rest needs either features trained with the head (ms2, running) or
 context the RoI features lack (a HYDRA-style re-ranker).
+
+## ms2: Mask Scoring trained jointly from COCO
+
+`runs/ms2_joint`: r10's recipe (enlarge-only jitter ×1.0-1.33, copy-paste 30, EMA
+0.9998, 36 epochs, seed 0) with `--mask-scoring`, so the MaskIoU head and the
+whole network train together from COCO weights, as in the Mask Scoring R-CNN
+paper. 11 h on one L40S.
+
+**Validation (200 tiles, EMA):** ahead of r10 at every epoch (+0.015-0.022 over
+epochs 4-12). It peaked at 0.2409 at epoch 28, then slipped to 0.2376 by epoch 36,
+as r10 and r10b also did late in training.
+
+**Test (v2, 1,402 tiles):**
+
+| | AP | AP50 | AP75 | AP_small | AP_medium | AP_large | AR | mask IoU | boundary IoU |
+|---|---|---|---|---|---|---|---|---|---|
+| r10 best.pt | 0.2177 | 0.4958 | 0.1637 | 0.0295 | 0.3141 | 0.3654 | 0.3436 | 0.7226 | 0.186 |
+| ms1 (head on frozen r10) | 0.2307 | 0.5118 | 0.1775 | 0.0454 | 0.3190 | 0.3730 | 0.3446 | 0.7243 | 0.186 |
+| **ms2 best.pt (ep28, EMA)** | **0.2310** | 0.5090 | **0.1806** | 0.0389 | **0.3224** | **0.3797** | **0.3457** | **0.7248** | 0.186 |
+| ms2 last.pt (EMA) | 0.2264 | 0.5036 | 0.1766 | 0.0452 | 0.3148 | 0.3664 | 0.3389 | 0.7241 | 0.187 |
+| ms2 last.pt (raw) | 0.2285 | 0.5087 | 0.1782 | 0.0510 | 0.3146 | 0.3651 | 0.3381 | 0.7242 | 0.187 |
+
+**What it shows:**
+- **Joint training ties the cheaper route.** 0.2310 against ms1's 0.2307 is
+  within the ±0.002 noise. Training the features with the head buys nothing on
+  these labels over 39 minutes of head-only training on r10. Mask Scoring is
+  worth ~+0.013 here either way.
+- **The ranking gain is not a learning-speed effect.** ms2's validation lead over
+  r10 at mid-training was the head's re-ranking, not faster learning: the final
+  test gain is the same +0.013 that ms1 gets on frozen r10.
+- **The raw final weights did not collapse** (0.2285; r10 0.162, r10b 0.189,
+  r9 0.170), and beat the EMA last.pt. One run only, so this may be chance.
+  If it holds, the head's loss is regularising the late epochs.
+- **Small buildings:** best.pt's AP_small (0.039) is below ms1's (0.045). The
+  later checkpoints recover it (last raw 0.051) at the cost of AP_large.
+- Gap to SAM 3 (0.2399): **0.009**, unchanged from ms1.
