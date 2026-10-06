@@ -365,3 +365,54 @@ usual. New this time: evidence on the four candidate next steps.
    ~+1.3 AP, not COCO's +2.1 AP75.
 2. Rank SAM 3 distillation above a query-based detector. SAM features gave the
    largest gain on WHU, and Mask2Former was unreliable on small data.
+
+---
+
+## 2026-10-06
+
+**Searched.** The window is 2026-10-02 to 10-06. It **re-checks the Friday-afternoon
+and weekend span flagged on 10-05, now announced**:
+- cs.CV RSS build 10-06 04:10Z, up to 2610.06852.
+- The newest API submission is 10-05 17:59Z.
+- 781 cs.CV/eess.IV entries were parsed and keyword-filtered: 10-02 131, 10-03 60,
+  10-04 74, 10-05 116.
+- Revised (v2+) versions inside the window are not covered.
+
+Plus a new topic: learned mask-quality scoring, now that ms1 has measured it on
+this data.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| Building / dense small-object instance segmentation | — | **Nothing new** | — |
+| [LoDEOT: offset tokens for footprint extraction from off-nadir imagery](https://arxiv.org/abs/2610.05899) | 10-05 | Query-based model with a 5-D roof-to-footprint offset token. BONAI FAP50 54.58, mEPE 5.23 px, +7.56 to +16.85 pp over the end-to-end baselines tested; five datasets; no code | `watch`: the most on-topic paper on roof-vs-footprint offset, but off-nadir, DETR-style, no code |
+| [PAR: prompt and refinement for noisy-label infrared small targets](https://arxiv.org/abs/2610.05918) | 10-05 | SAM and a detector correct each other's masks; no numbers in the abstract | `skip` |
+| [Training-dynamics detection of noisy keypoint labels](https://arxiv.org/abs/2610.06423) | 10-05 | 91.9% F1 at flagging noisy keypoints; filtering them gives up to +7.4 AP on COCO pose | `skip`: keypoints. The same idea as ADELE/ELR, already logged |
+| SAM 3 / SAM 2 | — | **Nothing new** (GitHub rate-limited; web search found only older items) | — |
+| IGN Ortho-Express | — | Nothing new; still no Paris (inferred from the latest forum post, 09-30) | `watch` |
+| COCO/LVIS small-object or boundary methods | — | **Nothing new** | — |
+
+**Learned mask-quality scoring.** These sources are older than the window.
+- **[HYDRA: "Queries Knew More Than We Thought"](https://arxiv.org/abs/2609.20283) (v1 2026-07-30).**
+  - A ~1.6M-parameter MLP trained only on a frozen model's cached outputs. It
+    re-picks among existing masks using objectness, logit moments,
+    agreement/exclusivity between overlapping masks, and image-level entropy.
+  - It recovers **43.5% of the oracle gap on Mask2Former** (54.4% on ADE20k),
+    27.5% on Mask DINO, and **32.5–78.3% on SAM 3**.
+  - No Mask R-CNN or instance-AP results, no code.
+  - `act`, as an idea: our MaskIoU head recovers ~14% of its oracle gap
+    (0.013 of 0.096). HYDRA suggests 30–50% is reachable for a frozen-model
+    re-ranker given richer context features. The candidates are agreement with
+    overlapping detections and image-level statistics, beyond the single RoI
+    features the head uses now.
+- **[iFAN](https://arxiv.org/abs/2608.03216) (v2 2026-08-07, logged 09-29 as `skip`).**
+  - Its "adjusted probability-mask ranking" aligns query scores with mask quality
+    during training, for +1.30 AP.
+  - `watch`: it is evidence that aligning scores with mask quality *during
+    training* pays, which supports the joint run ms2. It is DETR-only.
+
+**Takeaway.**
+- **The two queued runs are what this literature supports:** ms1b, a longer
+  head-only run, and ms2, joint training.
+- **HYDRA sets a target and a design for the next step if ms1b plateaus:** a
+  re-ranker that sees each detection's context, not just its own RoI, could plausibly
+  take the +0.013 to +0.03–0.05.
