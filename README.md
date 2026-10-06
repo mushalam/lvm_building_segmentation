@@ -40,6 +40,7 @@ in the SAM 3 project and ported in `lvm/boundary.py`.
 | r10: as r9 with enlarge-only jitter (x1.0-1.33) | 0.2177 | 0.164 | 0.030 | 0.723 | 64.9% |
 | r10b: r10 repeated with `--seed 1` (reproducibility check) | 0.2157 | 0.161 | 0.027 | 0.722 | 65.1% |
 | **ms1: r10 + Mask Scoring head (head-only training, 39 min)** | **0.2307** | **0.178** | **0.045** | **0.724** | 63.7% |
+| ms1b: as ms1, head trained 3x longer (12 epochs) | 0.2298 | 0.178 | 0.044 | 0.724 | 63.7% |
 | r11: r10's recipe on v2 + 92/93/94 (2x the buildings), matched steps | 0.2143 | 0.154 | 0.029 | 0.718 | **65.9%** |
 | merged: trained on v2 + D001 (8x the data) directly | 0.1544 | 0.086 | 0.033 | 0.696 | 58.4% |
 
@@ -95,6 +96,8 @@ tiles, at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`. Results are in
 2. **Re-ranking by predicted mask quality adds +0.013.** A Mask Scoring head
    trained for 39 minutes on frozen r10 reaches 0.2307 (AP_small +52%). An
    oracle shows a ceiling of +0.096, so most of the headroom remains.
+   - Training that head 3x longer (ms1b) does not help: 0.2298. The head-only
+     route has saturated; joint training (ms2) is running.
    - More data with v2's own label convention (92/93/94, 2x the buildings) did
      **not** help: r11 scores 0.214 (r10 0.218).
 3. **The labels are probably the main limit, for every model.**

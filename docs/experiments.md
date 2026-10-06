@@ -49,6 +49,7 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | r11 | `r11_paris_idf` | r10's recipe on v2 + 92/93/94 IRC (13,032 tiles), 14 epochs = matched steps (~91k vs 88k) | 0.2229 (ep10) / 0.2200 (ep14), 200-tile subset | 0.2143 / last 0.2107 (raw last 0.2124) | **No gain (−0.003, noise level).** 2x the buildings with v2's convention does not move Paris test AP. AP_large +0.012, AP75 −0.010. Raw weights did *not* collapse |
 | r10b | `r10b_seed1` | r10 repeated at `--seed 1`: how much of r10's lead is run-to-run noise? | 0.2319 (ep30) / 0.2286 (ep36), 200-tile subset | 0.2157 / last 0.2151 (raw last 0.1894) | **r10 reproduces.** Test within 0.002 of r10 on every metric; two-seed mean 0.2167. Test noise ~±0.002 |
 | ms1 | `ms1_head_only` | Mask Scoring: train only a MaskIoU head on frozen r10, 4 epochs; score = cls × predicted IoU | 0.2401 (ep4), 200-tile subset | **0.2307** (best = last) | **New best, +0.013 over r10** from re-ranking alone. AP_small 0.030→0.045, AP75 +0.014. ~14% of the oracle ceiling |
+| ms1b | `ms1b_head_long` | ms1 for 12 epochs (3x), `--seed 1` | 0.2412 (ep10/12), 200-tile subset | 0.2298 (best = last) | **No gain over ms1 (−0.001, noise).** Validation +0.001 over ms1, test flat. The head-only route is saturated at ~0.230 |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
@@ -388,3 +389,19 @@ score × predicted mask IoU.
 - **Not saturated.** Validation was still rising at the last epoch (0.2381 →
   0.2401). Next: train the head longer, then train the full model jointly with
   the head (the paper's setup) on r10's recipe.
+
+### ms1b: the same head trained 3x longer
+
+`runs/ms1b_head_long`: ms1's command with `--epochs 12 --seed 1`, 2 h 15 min.
+Validation (200 tiles) rose slowly and flattened: 0.2380, 0.2394, 0.2398,
+0.2408, 0.2412, 0.2412 at epochs 2-12 (ms1: 0.2401 after 4).
+
+| | AP | AP50 | AP75 | AP_small | AP_medium | AP_large | AR | mask IoU |
+|---|---|---|---|---|---|---|---|---|
+| ms1 (4 epochs) | 0.2307 | 0.5118 | 0.1775 | 0.0454 | 0.3190 | 0.3730 | 0.3446 | 0.7243 |
+| ms1b (12 epochs) | 0.2298 | 0.5114 | 0.1778 | 0.0435 | 0.3208 | 0.3746 | 0.3447 | 0.7243 |
+
+Test is unchanged (−0.0009, inside the ±0.002 noise). A head on frozen r10 features
+tops out at ~0.230. It recovers ~14% of the oracle ceiling however long it trains.
+The rest needs either features trained with the head (ms2, running) or
+context the RoI features lack (a HYDRA-style re-ranker).
