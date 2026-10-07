@@ -416,3 +416,46 @@ this data.
 - **HYDRA sets a target and a design for the next step if ms1b plateaus:** a
   re-ranker that sees each detection's context, not just its own RoI, could plausibly
   take the +0.013 to +0.03–0.05.
+
+## 2026-10-07
+
+**Searched.** The window is 2026-10-05 18:00Z to 10-07. It picks up where 10-06 stopped:
+- arXiv API, cs.CV OR eess.IV by submittedDate. 136 entries: 10-05 22, 10-06 114.
+  The newest is 10-06 17:59Z; 10-06 evening and 10-07 are not announced yet.
+- Keyword filter over titles and abstracts (building, footprint, roof, instance
+  segmentation, mask scoring/quality/IoU, rescoring, SAM, aerial, remote sensing,
+  off-nadir, cadastre, label noise, small object, boundary, Mask R-CNN, LiDAR).
+- Web: SAM 3 releases, IGN ORTHO Express 2026 (OSM France forum thread, page 4),
+  mask-quality re-ranking for frozen detectors, misaligned footprint labels.
+
+Revised (v2+) versions inside the window are not covered.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [RBMatch: class rebalancing for semi-supervised building footprint extraction](https://arxiv.org/abs/2610.07698) | 10-06 | Self-training with class-specific thresholds, loss reweighting and distribution alignment. Semantic segmentation on WHU/INRIA/Massachusetts at 1–10% labels; best IoU, +1.37 IoU on Massachusetts at 1%. No code | `skip`: semantic, low-label regime. We are fully labelled; our limit is label alignment, not label count |
+| [Fine-tuning nuclei segmentation models on pseudo-labels by difficulty](https://arxiv.org/abs/2610.07711) | 10-06 | Dense instance segmentation. Expert labels on the hard/medium cases beat 5,901 easy pseudo-labels; best composition is model-dependent | `skip`: pathology. The general point (a few hundred corrected hard cases beat many easy ones) is a reminder for any relabelling effort |
+| [How many independent samples does a satellite image contain?](https://arxiv.org/abs/2610.08227) (TGRS) | 10-06 | Effective sample size of an n×n image with correlation range r is Θ(n²/r²); random holdout understates confidence-interval width by a factor ∝ r | `watch`: our ±0.002 noise estimate comes from two seeds on a fixed split. It says nothing about split-to-split variance on spatially correlated Paris tiles, so small gains (< ~0.005) should be read cautiously |
+| SAM 3 / SAM 2 | — | **Nothing new**. Latest is SAM 3.1 (March 2026, video multiplexing; image model unchanged) | — |
+| IGN ORTHO Express 2026 | — | Service live on the Géoplateforme since 09-28. The forum's latest post (09-30, Jura) still lists no Paris or 92/93/94 | `watch` |
+| Mask-quality re-ranking, misaligned footprint labels | — | **Nothing new**. Hits were older work already logged (Align and Segment 09-29, OMAF 10-05) or pre-2024 (Mask Frozen-DETR, which also uses a mask-scoring head on a frozen detector) | — |
+| Building / dense small-object instance segmentation (instance-level, aerial) | — | **Nothing new** | — |
+
+**Measured here since the last entry** (details in [experiments.md](experiments.md)):
+- **ms1b** (head-only Mask Scoring, 12 epochs): test 0.2298, no gain over ms1's
+  0.2307. A head on frozen r10 RoI features saturates at ~14% of the oracle gap.
+- **ms2** (Mask Scoring trained jointly from COCO, the paper's setup): test 0.2310,
+  ties ms1. iFAN's case (10-06) that aligning scores with mask quality *during
+  training* pays does not carry over here; joint training is now `measured here`.
+
+**Takeaway.**
+- The Mask Scoring line is worth +0.013 and has stopped giving more from RoI
+  features, whether trained alone or jointly.
+- The remaining leads are both from earlier entries:
+  1. **A HYDRA-style context re-ranker** (10-06, `act`): a small model on cached
+     r10 + MaskIoU outputs that adds what the RoI head cannot see (overlap and
+     agreement with neighbouring detections, image-level statistics). It is cheap
+     to try because it trains on cached detections, not images.
+  2. **Label realignment** (Align and Segment 09-29, OMAF 10-05): it attacks the
+     cause rather than the ranking, but our test labels stay misaligned, so test AP
+     may not show the gain.
+- Nothing published today changes that ordering.
