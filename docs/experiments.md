@@ -51,6 +51,7 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | ms1 | `ms1_head_only` | Mask Scoring: train only a MaskIoU head on frozen r10, 4 epochs; score = cls × predicted IoU | 0.2401 (ep4), 200-tile subset | **0.2307** (best = last) | **New best, +0.013 over r10** from re-ranking alone. AP_small 0.030→0.045, AP75 +0.014. ~14% of the oracle ceiling |
 | ms1b | `ms1b_head_long` | ms1 for 12 epochs (3x), `--seed 1` | 0.2412 (ep10/12), 200-tile subset | 0.2298 (best = last) | **No gain over ms1 (−0.001, noise).** Validation +0.001 over ms1, test flat. The head-only route is saturated at ~0.230 |
 | ms2 | `ms2_joint` | r10's recipe from COCO with the MaskIoU head trained jointly (the paper's setup), EMA, 36 epochs | 0.2409 (ep28) / 0.2376 (ep36), 200-tile subset | 0.2310 / last 0.2264 (raw last 0.2285) | **Ties ms1 (+0.0003).** Joint training adds nothing over bolting the head onto r10. Raw last weights did not collapse (0.2285 vs r10's 0.162) |
+| rerank1 | `rerank1` | ms1's detections re-ranked by a gradient-boosted IoU regressor trained on cached detections (held-out 92/93/94 + v2 valid); HYDRA-style, no image retraining | 0.2358 cross-fitted, full 700 tiles (ms1 0.2262) | **0.2411** | **+0.010 over ms1, level with SAM 3 (0.2399).** The gain is calibration over all 400 detections, not context: neighbour and image features lower the IoU error but add no AP |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
@@ -442,3 +443,63 @@ as r10 and r10b also did late in training.
 - **Small buildings:** best.pt's AP_small (0.039) is below ms1's (0.045). The
   later checkpoints recover it (last raw 0.051) at the cost of AP_large.
 - Gap to SAM 3 (0.2399): **0.009**, unchanged from ms1.
+
+## rerank1: a re-ranker trained on cached detections (HYDRA-style)
+
+`tools/dump_detections.py` runs ms1 once and caches every detection (400 per
+tile, no threshold): 12 own features (class score, MaskIoU-head IoU, their
+product, log mask/box area, aspect, box fill, mean mask probability, boundary
+softness, distance to tile edge, rank), 10 context features (overlap with
+higher-ranked and any detection, coverage both ways, overlap counts, the
+strongest-overlap neighbour's scores) and 11 image features, plus the target:
+true mask IoU with the best-matching ground truth (the oracle's rule).
+`tools/context_rerank.py` fits a scikit-learn HistGradientBoostingRegressor on
+it and re-ranks. Masks and detections never change.
+
+Data: 8,131 92/93/94 tiles (3.25M detections) that ms1 never trained on, and v2
+valid (700 tiles), cross-fitted in 5 image folds so no valid detection is scored
+by a model that saw its image. Source × feature set × rule (27 settings) were
+chosen on valid; test was scored once. 4 h on one L40S, nearly all of it the
+8,131-tile dump.
+
+**Valid (700 tiles, cross-fitted; ms1 0.2262, oracle 0.3051):**
+
+| training source | own, cls×pred | own+ctx, cls×pred | all, cls×pred | own, ms×pred | own, pred |
+|---|---|---|---|---|---|
+| 92/93/94 only | 0.2340 | 0.2346 | 0.2339 | 0.2349 | 0.2267 |
+| v2 valid only | 0.2346 | 0.2343 | 0.2338 | 0.2340 | 0.2289 |
+| both | **0.2358** | 0.2350 | 0.2345 | 0.2349 | 0.2282 |
+
+Mean absolute error of the IoU estimate: MaskIoU head 0.461; re-ranker 0.118
+(own), 0.102 (own+ctx), 0.100 (all).
+
+**Test (v2, 1,402 tiles), chosen setting (both, own features, cls × pred):**
+
+| | AP | AP50 | AP75 | AP_small | AP_medium | AP_large | AR |
+|---|---|---|---|---|---|---|---|
+| ms1 | 0.2307 | 0.5119 | 0.1775 | 0.0453 | 0.3190 | 0.3728 | 0.3446 |
+| **rerank1** | **0.2411** | **0.5339** | **0.1881** | **0.0619** | **0.3282** | **0.3832** | 0.3456 |
+| oracle (ms × true IoU) | 0.3088 | 0.6261 | 0.2729 | 0.1043 | 0.4140 | 0.4745 | 0.3503 |
+| SAM 3 | 0.2399 | | | | | | |
+
+**What it shows:**
+- **+0.010 on test** (valid +0.010 too), five times the seed noise, with gains on
+  every size and AP50 +0.022. ms1 plus rerank1 recovers 0.023 of r10's 0.091
+  oracle gap: 26%, against ms1's 14%. It is level with SAM 3: 0.0012 ahead, inside
+  the noise.
+- **It is not the context.** Neighbour and image features cut the IoU error
+  (0.118 → 0.100) but add no AP (−0.001 to +0.001 in every source). HYDRA's
+  context gains (arXiv 2609.20283) were on query-based models whose duplicates
+  and conflicts are not removed by NMS. Mask R-CNN's NMS already resolves most of
+  what the context features describe.
+- **It is calibration.** The MaskIoU head is trained only on positive proposals,
+  so it says ~0.67 for every detection, including the hundreds of background
+  ones that remain with no score threshold (error 0.461). A regressor trained on
+  every detection, with the class score as an input, ranks those correctly.
+  Ranking by predicted IoU alone (`pred`) gains nothing: the class score must stay
+  in the product.
+- **Held-out data from elsewhere works.** The 92/93/94 suburbs alone give
+  +0.008-0.009; adding Paris valid detections helps a little more.
+- **Not yet deployable as-is.** The fitted regressor is not saved, and `lvm.predict` /
+  `lvm.score` do not apply it. Own features cost almost nothing at inference
+  (no pairwise overlaps), so wiring it in is cheap.

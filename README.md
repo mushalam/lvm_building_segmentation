@@ -5,12 +5,14 @@ It was built as an independent second attempt against a fully fine-tuned SAM 3
 model from the sibling project `sam3-ft-EOSC`, on the same dataset and with the
 same scoring protocol.
 
-**Status (6 Oct 2026).**
-- **Accuracy:** SAM 3 is still ahead, by 0.009 AP on the same test tiles. The best
-  Mask R-CNN scores **0.2307 segm AP** on the 1,402 held-out v2 test tiles. That is
-  r10 (enlarge-only scale jitter, copy-paste, EMA, 36 epochs) plus a Mask Scoring
-  head that re-ranks detections by predicted mask quality. SAM 3 scores
-  **0.2399** on those tiles.
+**Status (7 Oct 2026).**
+- **Accuracy:** Mask R-CNN is now level with SAM 3 on the same test tiles:
+  **0.2411 segm AP** against SAM 3's **0.2399** on the 1,402 held-out v2 test
+  tiles (the 0.001 lead is inside the noise). That is r10 (enlarge-only scale
+  jitter, copy-paste, EMA, 36 epochs) plus a Mask Scoring head (0.2307), with its
+  detections re-ranked by a small regressor trained on cached detections
+  (`tools/context_rerank.py`). The re-ranker is measured offline and is not yet
+  applied by `lvm.predict`; the best model as a single checkpoint is ms1, 0.2307.
 - **Cost:** Mask R-CNN is 18x smaller (46M vs 841M parameters), uses about a third
   less GPU memory at inference, and trains in hours rather than days. At deployment
   the two run at the same speed: ~135 ms per tile on an L40S.
@@ -42,6 +44,7 @@ in the SAM 3 project and ported in `lvm/boundary.py`.
 | **ms1: r10 + Mask Scoring head (head-only training, 39 min)** | **0.2307** | **0.178** | **0.045** | **0.724** | 63.7% |
 | ms1b: as ms1, head trained 3x longer (12 epochs) | 0.2298 | 0.178 | 0.044 | 0.724 | 63.7% |
 | ms2: r10's recipe with the Mask Scoring head trained jointly from COCO, 36 epochs | **0.2310** | **0.181** | 0.039 | **0.725** | 64.0% |
+| **rerank1: ms1 + an IoU regressor trained on cached detections (offline)** | **0.2411** | **0.188** | **0.062** | 0.724 | 63.7% |
 | r11: r10's recipe on v2 + 92/93/94 (2x the buildings), matched steps | 0.2143 | 0.154 | 0.029 | 0.718 | **65.9%** |
 | merged: trained on v2 + D001 (8x the data) directly | 0.1544 | 0.086 | 0.033 | 0.696 | 58.4% |
 
@@ -49,7 +52,7 @@ in the SAM 3 project and ported in `lvm/boundary.py`.
 
 | split | Mask R-CNN | SAM 3 | gap |
 |---|---|---|---|
-| v2 test, 1,402 tiles (segm AP) | 0.2307 (ms1 = r10 + Mask Scoring head) | **0.2399** | 0.009 |
+| v2 test, 1,402 tiles (segm AP) | **0.2411** (rerank1 = ms1 + re-ranker) | 0.2399 | −0.001 (level) |
 | v2 valid, 700 tiles (segm AP) | 0.196 (run 2) | **0.2383** | 0.042 |
 | v2 valid, 250-tile sample (matched mask IoU) | 0.714 (run 2) | **0.7341** | 0.020 |
 | boundary IoU, object-scale band (250-tile sample) | 0.186 (r10, v2 test) | **0.1944** (v2 valid) | ~0.008, different splits |
@@ -100,6 +103,10 @@ tiles, at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`. Results are in
    - Training that head 3x longer (ms1b) does not help: 0.2298. The head-only
      route has saturated. Training the whole model with the head from COCO (ms2)
    ties it: 0.2310. Mask Scoring is worth ~+0.013 on these labels either way.
+   - A gradient-boosted regressor that re-estimates each detection's IoU from
+     cached outputs adds another +0.010 (0.2411, level with SAM 3). The gain is
+     calibration across all 400 detections. Context features (neighbours, image
+     statistics) add nothing on top.
    - More data with v2's own label convention (92/93/94, 2x the buildings) did
      **not** help: r11 scores 0.214 (r10 0.218).
 3. **The labels are probably the main limit, for every model.**

@@ -1,0 +1,96 @@
+=== GPU 1 before: 0 MiB  2026-10-07 17:41:01 ===
+=== dump v2 valid  17:41:01 ===
+  0/700 images  1s
+  200/700 images  217s
+  400/700 images  423s
+  600/700 images  628s
+wrote runs/rerank1/dets_valid.pt: 700 images, 280000 detections, 727s
+=== dump v2 test  17:53:12 ===
+  0/1402 images  1s
+  200/1402 images  200s
+  400/1402 images  393s
+  600/1402 images  585s
+  800/1402 images  775s
+  1000/1402 images  964s
+  1200/1402 images  1157s
+  1400/1402 images  1358s
+wrote runs/rerank1/dets_test.pt: 1402 images, 560800 detections, 1360s
+=== dump 92/93/94 (held out)  18:15:56 ===
+  0/8131 images  1s
+  200/8131 images  188s
+  400/8131 images  367s
+  600/8131 images  564s
+  800/8131 images  753s
+  1000/8131 images  981s
+  1200/8131 images  1189s
+  1400/8131 images  1417s
+  1600/8131 images  1598s
+  1800/8131 images  1812s
+  2000/8131 images  2024s
+  2200/8131 images  2209s
+  2400/8131 images  2428s
+  2600/8131 images  2642s
+  2800/8131 images  2852s
+  3000/8131 images  3057s
+  3200/8131 images  3282s
+  3400/8131 images  3531s
+  3600/8131 images  3767s
+  3800/8131 images  3951s
+  4000/8131 images  4164s
+  4200/8131 images  4402s
+  4400/8131 images  4657s
+  4600/8131 images  4905s
+  4800/8131 images  5151s
+  5000/8131 images  5371s
+  5200/8131 images  5590s
+  5400/8131 images  5821s
+  5600/8131 images  6036s
+  5800/8131 images  6241s
+  6000/8131 images  6430s
+  6200/8131 images  6640s
+  6400/8131 images  6836s
+  6600/8131 images  7028s
+  6800/8131 images  7228s
+  7000/8131 images  7441s
+  7200/8131 images  7644s
+  7400/8131 images  7831s
+  7600/8131 images  8029s
+  7800/8131 images  8218s
+  8000/8131 images  8439s
+wrote runs/rerank1/dets_idf.pt: 8131 images, 3252400 detections, 8574s
+=== re-ranker  20:38:59 ===
+detections: train 3252400, valid 280000, test 560800
+valid baseline 0.2262  oracle 0.3051  MaskIoU head mae 0.461
+  idf | own | pred             AP 0.2267 (+0.0005)  AP75 0.1776  AP_small 0.0550  mae 0.119  108s
+  idf | own | cls*pred         AP 0.2340 (+0.0078)  AP75 0.1799  AP_small 0.0617  mae 0.119  205s
+  idf | own | ms*pred          AP 0.2349 (+0.0087)  AP75 0.1816  AP_small 0.0626  mae 0.119  299s
+  idf | own+ctx | pred         AP 0.2187 (-0.0075)  AP75 0.1737  AP_small 0.0490  mae 0.103  113s
+  idf | own+ctx | cls*pred     AP 0.2346 (+0.0084)  AP75 0.1809  AP_small 0.0611  mae 0.103  210s
+  idf | own+ctx | ms*pred      AP 0.2349 (+0.0087)  AP75 0.1816  AP_small 0.0619  mae 0.103  305s
+  idf | all | pred             AP 0.2177 (-0.0085)  AP75 0.1716  AP_small 0.0504  mae 0.100  115s
+  idf | all | cls*pred         AP 0.2339 (+0.0077)  AP75 0.1792  AP_small 0.0618  mae 0.100  210s
+  idf | all | ms*pred          AP 0.2345 (+0.0083)  AP75 0.1806  AP_small 0.0623  mae 0.100  302s
+  valid | own | pred           AP 0.2289 (+0.0027)  AP75 0.1778  AP_small 0.0552  mae 0.120  112s
+  valid | own | cls*pred       AP 0.2346 (+0.0084)  AP75 0.1793  AP_small 0.0609  mae 0.120  205s
+  valid | own | ms*pred        AP 0.2340 (+0.0078)  AP75 0.1802  AP_small 0.0619  mae 0.120  298s
+  valid | own+ctx | pred       AP 0.2215 (-0.0047)  AP75 0.1744  AP_small 0.0514  mae 0.105  109s
+  valid | own+ctx | cls*pred   AP 0.2343 (+0.0081)  AP75 0.1798  AP_small 0.0603  mae 0.105  202s
+  valid | own+ctx | ms*pred    AP 0.2334 (+0.0072)  AP75 0.1798  AP_small 0.0614  mae 0.105  296s
+  valid | all | pred           AP 0.2199 (-0.0063)  AP75 0.1725  AP_small 0.0524  mae 0.102  114s
+  valid | all | cls*pred       AP 0.2338 (+0.0076)  AP75 0.1787  AP_small 0.0611  mae 0.102  212s
+  valid | all | ms*pred        AP 0.2334 (+0.0072)  AP75 0.1800  AP_small 0.0614  mae 0.102  307s
+  both | own | pred            AP 0.2282 (+0.0020)  AP75 0.1792  AP_small 0.0550  mae 0.118  156s
+  both | own | cls*pred        AP 0.2358 (+0.0096)  AP75 0.1813  AP_small 0.0617  mae 0.118  251s
+  both | own | ms*pred         AP 0.2349 (+0.0087)  AP75 0.1817  AP_small 0.0626  mae 0.118  344s
+  both | own+ctx | pred        AP 0.2196 (-0.0066)  AP75 0.1744  AP_small 0.0493  mae 0.102  171s
+  both | own+ctx | cls*pred    AP 0.2350 (+0.0088)  AP75 0.1812  AP_small 0.0613  mae 0.102  265s
+  both | own+ctx | ms*pred     AP 0.2348 (+0.0086)  AP75 0.1817  AP_small 0.0621  mae 0.102  358s
+  both | all | pred            AP 0.2196 (-0.0066)  AP75 0.1740  AP_small 0.0506  mae 0.100  192s
+  both | all | cls*pred        AP 0.2345 (+0.0083)  AP75 0.1805  AP_small 0.0618  mae 0.100  286s
+  both | all | ms*pred         AP 0.2347 (+0.0085)  AP75 0.1812  AP_small 0.0615  mae 0.100  379s
+chosen on valid: both | own | cls*pred
+test baseline (ms1 score)                     AP 0.2307  AP75 0.1775  AP_small 0.0453
+test oracle (ms*true IoU)                     AP 0.3088  AP75 0.2729  AP_small 0.1043
+test chosen: both | own | cls*pred            AP 0.2411  AP75 0.1881  AP_small 0.0619
+wrote runs/rerank1/rerank.json
+=== all done 2026-10-07 21:39:56 ===
