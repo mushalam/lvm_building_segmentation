@@ -503,3 +503,44 @@ Mean absolute error of the IoU estimate: MaskIoU head 0.461; re-ranker 0.118
 - **Not yet deployable as-is.** The fitted regressor is not saved, and `lvm.predict` /
   `lvm.score` do not apply it. Own features cost almost nothing at inference
   (no pairwise overlaps), so wiring it in is cheap.
+
+## Label offset diagnostic (`runs/label_offset`, `tools/label_offset.py`)
+
+Before re-aligning any labels: for every ground-truth building with a confident
+matching prediction (ms1 score ≥ 0.3, IoU ≥ 0.1), search integer shifts in
+±24 px for the one that maximises mask IoU between shifted label and
+prediction. Run with ms1 and, as a control, with ms2 (trained independently from
+COCO). Tiles are 1,024 px.
+
+| | buildings | median shift | p90 shift | ≥ 3 px | IoU at 0 → best | shift variance explained by one shift per tile |
+|---|---|---|---|---|---|---|
+| v2 valid, ms1 | 39,069 | 4.5 px | 18.9 px | 72% | 0.631 → 0.707 | 5.7% |
+| v2 valid, ms2 | 38,972 | 4.5 px | 19.0 px | 73% | 0.632 → 0.709 | 5.8% |
+| v2 train (700 tiles), ms1 | 38,929 | 4.0 px | 12.6 px | 66% | 0.681 → 0.756 | 6.2% |
+| v2 train (700 tiles), ms2 | 38,924 | 4.1 px | 13.0 px | 67% | 0.678 → 0.754 | 6.1% |
+
+**Do two models agree on each building's shift?**
+
+| | corr (dy / dx) | ms1 ≥ 3 px: ms2 within 2 px | shuffled-pair null | buildings with an agreed ≥ 3 px offset | IoU gain on those |
+|---|---|---|---|---|---|
+| valid | 0.765 / 0.762 | 60.0% | 3.4% | 43.1% | +0.105 |
+| train | 0.794 / 0.776 | 65.1% | 4.5% | 42.9% | +0.109 |
+
+**What it shows:**
+- **The offsets are real and per building.** Two independently trained models
+  put the same building at the same shift, 15-20× more often than chance.
+  ~43% of buildings sit ≥ 3 px from where both models see them.
+- **One shift per tile explains only ~6%.** The offset is not a registration
+  error that one translation per tile fixes; it varies building by building, as
+  height-dependent lean on a non-true ortho would. **Align and Segment** learns one
+  rotation-plus-translation per patch, so it does not fit this data. Per-object
+  alignment (OMAF's idea) does.
+- **The models did not memorise the offsets.** On their own training tiles the
+  shifts are nearly as large (median 4.0 vs 4.5 px), so ms1/ms2 predictions on
+  train can realign the training labels without cross-fitted models.
+- Mean shift is ~0 in both axes: there is no global bias to correct.
+
+`tools/realign_labels.py` moves a label by the two models' mean shift where they
+agree within 2 px, the shift is ≥ 3 px and the IoU gain ≥ 0.03. Translation
+only: shapes, parcel splits and missing buildings are untouched. al1 trains on
+the result.
