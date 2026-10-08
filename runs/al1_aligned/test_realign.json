@@ -1,0 +1,22 @@
+{
+  "split": "test",
+  "buildings": 106580,
+  "measured_by_both": 75310,
+  "moved": 25968,
+  "moved_share": 0.24364796397072622,
+  "dropped_off_tile": 0,
+  "shift_px_median": 5.656854249492381,
+  "shift_px_p90": 13.45362404707371,
+  "iou_gain_mean_moved": 0.12858120059515177,
+  "data": "data/ign_building_v2/building",
+  "dets": [
+    "runs/al1_aligned/dets/test_ms1.pt",
+    "runs/al1_aligned/dets/test_ms2.pt"
+  ],
+  "min_score": 0.3,
+  "agree": 2.0,
+  "min_shift": 3.0,
+  "min_gain": 0.03,
+  "min_area": 16,
+  "out_root": "data_local/ign_building_v2_aligned_eval/building"
+}

@@ -1,0 +1,22 @@
+{
+  "data": "data_local/ign_building_v2_aligned/building",
+  "out": "runs/al1_aligned",
+  "epochs": 36,
+  "batch_size": 2,
+  "lr": 0.005,
+  "workers": 16,
+  "max_dets": 400,
+  "image_size": 2048,
+  "init_from": null,
+  "scratch_heads": false,
+  "d4": false,
+  "backbone": "resnet50",
+  "val_images": 200,
+  "ema": 0.9998,
+  "scale_jitter": "1.0,1.33",
+  "copy_paste": 30,
+  "val_every": 2,
+  "mask_scoring": false,
+  "freeze_except_maskiou": false,
+  "seed": null
+}

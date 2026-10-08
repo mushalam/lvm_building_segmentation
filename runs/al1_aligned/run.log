@@ -1,0 +1,130 @@
+=== GPU 1 before: 0 MiB  2026-10-07 22:41:23 ===
+=== 1. detections  22:41:23 ===
+wrote runs/al1_aligned/dets/train_ms1.pt: 4903 images, 1961200 detections, 5110s
+wrote runs/al1_aligned/dets/train_ms2.pt: 4903 images, 1961200 detections, 5081s
+wrote runs/al1_aligned/dets/test_ms2.pt: 1402 images, 560800 detections, 1467s
+=== 2. realign  01:55:59 ===
+{
+  "split": "train",
+  "buildings": 377305,
+  "measured_by_both": 269185,
+  "moved": 94707,
+  "moved_share": 0.25100913054425467,
+  "dropped_off_tile": 0,
+  "shift_px_median": 5.0990195135927845,
+  "shift_px_p90": 10.816653826391969,
+  "iou_gain_mean_moved": 0.12733406277535186,
+  "data": "data/ign_building_v2/building",
+  "dets": [
+    "runs/al1_aligned/dets/train_ms1.pt",
+    "runs/al1_aligned/dets/train_ms2.pt"
+  ],
+  "min_score": 0.3,
+  "agree": 2.0,
+  "min_shift": 3.0,
+  "min_gain": 0.03,
+  "min_area": 16,
+  "out_root": "data_local/ign_building_v2_aligned/building"
+}
+{
+  "split": "valid",
+  "buildings": 53324,
+  "measured_by_both": 37873,
+  "moved": 13078,
+  "moved_share": 0.24525541969844722,
+  "dropped_off_tile": 0,
+  "shift_px_median": 5.656854249492381,
+  "shift_px_p90": 13.903227275770139,
+  "iou_gain_mean_moved": 0.1264233081816626,
+  "data": "data/ign_building_v2/building",
+  "dets": [
+    "runs/al1_aligned/dets/valid_ms1.pt",
+    "runs/al1_aligned/dets/valid_ms2.pt"
+  ],
+  "min_score": 0.3,
+  "agree": 2.0,
+  "min_shift": 3.0,
+  "min_gain": 0.03,
+  "min_area": 16,
+  "out_root": "data_local/ign_building_v2_aligned_eval/building"
+}
+{
+  "split": "test",
+  "buildings": 106580,
+  "measured_by_both": 75310,
+  "moved": 25968,
+  "moved_share": 0.24364796397072622,
+  "dropped_off_tile": 0,
+  "shift_px_median": 5.656854249492381,
+  "shift_px_p90": 13.45362404707371,
+  "iou_gain_mean_moved": 0.12858120059515177,
+  "data": "data/ign_building_v2/building",
+  "dets": [
+    "runs/al1_aligned/dets/test_ms1.pt",
+    "runs/al1_aligned/dets/test_ms2.pt"
+  ],
+  "min_score": 0.3,
+  "agree": 2.0,
+  "min_shift": 3.0,
+  "min_gain": 0.03,
+  "min_area": 16,
+  "out_root": "data_local/ign_building_v2_aligned_eval/building"
+}
+total 196
+drwxr-xr-x. 3 ankur ankur     90 Oct  8 02:03 .
+drwxr-xr-x. 3 ankur ankur     30 Oct  8 02:00 ..
+lrwxrwxrwx. 1 ankur ankur     63 Oct  8 02:03 test -> /home/ankur/work/sam3ft-fine/data/ign_building_v2/building/test
+drwxr-xr-x. 2 ankur ankur 122880 Oct  8 02:00 train
+-rw-r--r--. 1 ankur ankur    579 Oct  8 02:00 train_realign.json
+lrwxrwxrwx. 1 ankur ankur     64 Oct  8 02:03 valid -> /home/ankur/work/sam3ft-fine/data/ign_building_v2/building/valid
+data_local/ign_building_v2_aligned/building/train: 4903 images, 377305 buildings, 94707 moved
+data_local/ign_building_v2_aligned/building/valid: 700 images, 53324 buildings, 0 moved
+data_local/ign_building_v2_aligned/building/test: 1402 images, 106580 buildings, 0 moved
+data_local/ign_building_v2_aligned_eval/building/valid: 700 images, 53324 buildings, 13078 moved
+data_local/ign_building_v2_aligned_eval/building/test: 1402 images, 106580 buildings, 25968 moved
+=== 3. train al1 (r10 recipe)  02:03:12 ===
+=== training exited 2026-10-08 12:43:30 ===
+epoch 35: AP 0.2276 AP50 0.5077 AP75 0.1767 AP_small 0.0223 mask IoU 0.7284 matched 0.648  [raw AP 0.2306 mask IoU 0.7294] (21.4 min)
+done. best AP 0.2301
+=== 4. Mask Scoring head (ms1 recipe)  12:43:30 ===
+=== head exited 2026-10-08 13:21:44 ===
+  new best, saved
+done. best AP 0.2405
+=== 5. scoring  13:21:44 ===
+=== runs/al1_aligned/best.pt on original test  13:21:44 ===
+  "AP": 0.21476985414649716,
+  "AP75": 0.15712733423560002,
+  "AP_small": 0.028624454682221256,
+  "boundary_iou": 0.1869733556523878,
+  "matched_mask_iou": 0.7221994825909063,
+=== runs/al1_ms/best.pt on original test  13:45:06 ===
+  "AP": 0.22797663021445294,
+  "AP75": 0.17060185519178347,
+  "AP_small": 0.04696421013755311,
+  "boundary_iou": 0.18637342669496504,
+  "matched_mask_iou": 0.7239227627094202,
+=== runs/al1_aligned/best.pt on realigned test  14:08:23 ===
+  "AP": 0.2675740331666926,
+  "AP75": 0.25651222932637396,
+  "AP_small": 0.04236181974411417,
+  "boundary_iou": 0.245534424355408,
+  "matched_mask_iou": 0.7558838016421707,
+=== runs/al1_ms/best.pt on realigned test  14:31:26 ===
+  "AP": 0.28194067075482493,
+  "AP75": 0.27172658303323377,
+  "AP_small": 0.06795638605329563,
+  "boundary_iou": 0.24585230593174245,
+  "matched_mask_iou": 0.7580274251153672,
+=== runs/r10_jitter_up/best.pt on realigned test (r10 baseline)  14:54:39 ===
+  "AP": 0.26867700371564457,
+  "AP75": 0.25921508630903906,
+  "AP_small": 0.043708030725732226,
+  "boundary_iou": 0.24866903483640948,
+  "matched_mask_iou": 0.7573646212240667,
+=== runs/ms1_head_only/best.pt on realigned test (ms1 baseline)  15:17:15 ===
+  "AP": 0.281390695584546,
+  "AP75": 0.2722843950371022,
+  "AP_small": 0.06361683586219308,
+  "boundary_iou": 0.24938416328077223,
+  "matched_mask_iou": 0.7593960957728103,
+=== all done 2026-10-08 15:39:11 ===
