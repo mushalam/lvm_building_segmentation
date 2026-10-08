@@ -45,6 +45,7 @@ in the SAM 3 project and ported in `lvm/boundary.py`.
 | ms1b: as ms1, head trained 3x longer (12 epochs) | 0.2298 | 0.178 | 0.044 | 0.724 | 63.7% |
 | ms2: r10's recipe with the Mask Scoring head trained jointly from COCO, 36 epochs | **0.2310** | **0.181** | 0.039 | **0.725** | 64.0% |
 | **rerank1: ms1 + an IoU regressor trained on cached detections (offline)** | **0.2411** | **0.188** | **0.062** | 0.724 | 63.7% |
+| al1: r10's recipe on per-building realigned training labels (+ head) | 0.2148 (0.2280) | 0.157 (0.171) | 0.029 (0.047) | 0.722 | — |
 | r11: r10's recipe on v2 + 92/93/94 (2x the buildings), matched steps | 0.2143 | 0.154 | 0.029 | 0.718 | **65.9%** |
 | merged: trained on v2 + D001 (8x the data) directly | 0.1544 | 0.086 | 0.033 | 0.696 | 58.4% |
 
@@ -107,6 +108,11 @@ tiles, at batch 1, via `lvm/bench.py` and `tools/bench_sam3.py`. Results are in
      cached outputs adds another +0.010 (0.2411, level with SAM 3). The gain is
      calibration across all 400 detections. Context features (neighbours, image
      statistics) add nothing on top.
+   - Re-aligning the training labels per building (25% moved, where two models
+     agree on the offset) gives no gain: al1 0.2148 vs r10 0.2177, and level on a
+     realigned copy of test too. The offsets are unpredictable from the image,
+     and the model already averages them out. They cost every model ~0.05 AP on
+     the benchmark: realigning just the test labels lifts r10 to 0.269.
    - More data with v2's own label convention (92/93/94, 2x the buildings) did
      **not** help: r11 scores 0.214 (r10 0.218).
 3. **The labels are probably the main limit, for every model.**

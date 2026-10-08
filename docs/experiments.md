@@ -52,6 +52,7 @@ All scores come from `lvm/score.py`: segm AP, maxDets 300.
 | ms1b | `ms1b_head_long` | ms1 for 12 epochs (3x), `--seed 1` | 0.2412 (ep10/12), 200-tile subset | 0.2298 (best = last) | **No gain over ms1 (−0.001, noise).** Validation +0.001 over ms1, test flat. The head-only route is saturated at ~0.230 |
 | ms2 | `ms2_joint` | r10's recipe from COCO with the MaskIoU head trained jointly (the paper's setup), EMA, 36 epochs | 0.2409 (ep28) / 0.2376 (ep36), 200-tile subset | 0.2310 / last 0.2264 (raw last 0.2285) | **Ties ms1 (+0.0003).** Joint training adds nothing over bolting the head onto r10. Raw last weights did not collapse (0.2285 vs r10's 0.162) |
 | rerank1 | `rerank1` | ms1's detections re-ranked by a gradient-boosted IoU regressor trained on cached detections (held-out 92/93/94 + v2 valid); HYDRA-style, no image retraining | 0.2358 cross-fitted, full 700 tiles (ms1 0.2262) | **0.2411** | **+0.010 over ms1, level with SAM 3 (0.2399).** The gain is calibration over all 400 detections, not context: neighbour and image features lower the IoU error but add no AP |
+| al1 | `al1_aligned`, `al1_ms` | r10's recipe on training labels realigned per building (25% moved, median 5.1 px, where ms1 and ms2 agree), then ms1's head | 0.2301 (ep28), 200-tile subset (r10 0.2303) | 0.2148; + head 0.2280 | **No gain (−0.003 vs r10 and vs ms1, at noise level).** Also level on a realigned copy of test (0.2676 vs r10 0.2687; + head 0.2819 vs ms1 0.2814). Realigning test labels alone lifts r10 from 0.218 to 0.269 |
 
 † These runs are initialised from, or trained on, merged data, which contains 492
 of v2 valid's 700 tiles. Their v2-valid numbers are inflated and not comparable.
@@ -544,3 +545,45 @@ COCO). Tiles are 1,024 px.
 agree within 2 px, the shift is ≥ 3 px and the IoU gain ≥ 0.03. Translation
 only: shapes, parcel splits and missing buildings are untouched. al1 trains on
 the result.
+
+## al1: training on per-building realigned labels
+
+`runs/al1_aligned/run.sh`. ms1 and ms2 detections on all 4,903 training tiles;
+`tools/realign_labels.py` moved 94,707 of 377,305 training buildings (25.1%,
+median 5.1 px) where the two models agreed (within 2 px, shift ≥ 3 px, IoU gain
+≥ 0.03); r10's exact recipe on the result (36 epochs, EMA, jitter, copy-paste),
+then ms1's head-only Mask Scoring recipe. Model selection on the ORIGINAL valid
+labels. The same rule applied to v2 valid and test (24-25% moved) gives a
+realigned copy, scored as a secondary benchmark.
+
+Validation tracked r10 within ±0.007 at every epoch with no trend (best 0.2301
+vs 0.2303).
+
+**Test (v2, 1,402 tiles):**
+
+| | original labels: AP | AP75 | AP_small | mask IoU | realigned labels: AP | AP75 | AP_small | mask IoU |
+|---|---|---|---|---|---|---|---|---|
+| r10 | 0.2177 | 0.164 | 0.030 | 0.723 | 0.2687 | 0.259 | 0.044 | 0.757 |
+| al1 | 0.2148 | 0.157 | 0.029 | 0.722 | 0.2676 | 0.257 | 0.042 | 0.756 |
+| ms1 (r10 + head) | 0.2307 | 0.178 | 0.045 | 0.724 | 0.2814 | 0.272 | 0.064 | 0.759 |
+| al1 + head | 0.2280 | 0.171 | 0.047 | 0.724 | 0.2819 | 0.272 | 0.068 | 0.758 |
+
+**What it shows:**
+- **Realigned training labels change nothing.** −0.003 on the original labels
+  (just above the ±0.002 seed noise) and ±0.001 on the realigned ones, with
+  and without the head.
+- **Why:** the offsets are zero-mean and not predictable from the image (one
+  shift per tile explains 6%; the models did not memorise them on train).
+  Mask R-CNN trained on the noisy labels already learns the mean position,
+  which is where the realigned labels put the buildings. Moving the labels removes noise the
+  model was already averaging out. The realigned labels also come from ms1/ms2's
+  own predictions, so al1 cannot learn positions those models did not already
+  produce.
+- **The offsets cost the benchmark ~0.05 AP.** Realigning only the test labels
+  raises r10 from 0.218 to 0.269 (AP75 0.164 → 0.259, mask IoU 0.723 → 0.757).
+  This is an upper estimate: the realigned test labels are built from ms1/ms2's
+  predictions, so they favour this model family. But it puts a size on the label
+  limit diagnosed earlier, and it applies to SAM 3 too, whose score is measured
+  against the same offset labels.
+- Align and Segment (one shift per patch) is ruled out by the offset diagnostic.
+  Per-building realignment (OMAF's idea) is now `measured here`: no gain.
