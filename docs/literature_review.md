@@ -459,3 +459,55 @@ Revised (v2+) versions inside the window are not covered.
      cause rather than the ranking, but our test labels stay misaligned, so test AP
      may not show the gain.
 - Nothing published today changes that ordering.
+
+## 2026-10-12
+
+**Searched.** The window is 2026-10-06 18:00Z to 10-12. It picks up where 10-07 stopped:
+- arXiv API, cs.CV OR eess.IV by submittedDate. 541 entries: 10-06 28, 10-07 174,
+  10-08 205, 10-09 134. The newest is 10-09 17:59Z. Friday evening and the weekend
+  (10-09 18:00Z to 10-11) are announced tonight and are **not covered**; the next
+  entry should start there.
+- The same keyword filter as 10-07, plus mask2former, mask dino, misalign, noisy label,
+  re-rank and urban. 82 hits; the abstracts of the 9 plausible ones were read.
+- Web: SAM 3 releases page, the IGN ORTHO Express 2026 forum thread (98 posts; latest
+  10-12 08:01Z), IGNF datasets and models on Hugging Face, and web searches for building
+  instance segmentation and SAM 3 remote-sensing fine-tuning.
+- GitHub API was rate-limited, so new repos were checked only by one repository search.
+
+Revised (v2+) versions inside the window are not covered.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| Building / dense small-object instance segmentation (aerial, instance-level) | — | **Nothing new** | — |
+| [LiG-DETR: local-in-global reassembly for aerial object detection](https://arxiv.org/abs/2610.09511) | 10-07 | DETR detector that encodes magnified local crops with a shared encoder, puts them back at their positions as an extra feature level, and sizes the query budget by density. "Substantial gains on small and medium objects"; the abstract gives no numbers; code "will be released" | `watch`: boxes only, DETR. Its slicing-as-a-feature-level idea is relevant to our small buildings, but there is no mask head, numbers or code yet |
+| [Domain adaptation of SAM 2.1 for building-component segmentation](https://arxiv.org/abs/2610.12786) | 10-08 | Fine-tunes SAM 2.1 on 2,679 ground-level building photos (walls, windows and so on); mIoU 49.9 → 69.6 | `skip`: ground-level façades, semantic classes |
+| [MultiFly: multimodal low-altitude UAV dataset](https://arxiv.org/abs/2610.10359) | 10-07 | RGB, thermal, LiDAR and radar; labels propagated from 115 hand-labelled images, 89.9% agreement with held-out manual labels | `skip`: semantic, UAV, not France |
+| [Shortcut learning in GFM embeddings for cross-disaster damage](https://arxiv.org/abs/2610.13766) | 10-09 | Holding out a whole disaster drops balanced accuracy 0.807 → 0.638 (xView2) and 0.818 → 0.568 (BRIGHT) | `skip`: damage classification. It echoes the 10-07 point that random tile splits overstate how well results transfer |
+| [Revisiting building damage assessment](https://arxiv.org/abs/2610.13857) | 10-09 | Book-chapter review that argues for an instance-based task definition and a ranking-based multi-score evaluation | `skip` |
+| [Multimodal RS image registration review](https://arxiv.org/abs/2610.11176) | 10-08 | Survey of region-, feature- and learning-based registration | `skip`: image-to-image registration, not footprint-to-image; nothing for per-building offsets |
+| Label-imagery misalignment / off-nadir offset | — | **Nothing new** inside the window (LoDEOT, 10-06, is still the latest) | — |
+| SAM 3 / SAM 2 | — | **Nothing new.** The facebookresearch/sam3 releases page still lists no releases. The commit history could not be checked (rate limit) | — |
+| [SAM 3 zero/one-shot in remote sensing](https://arxiv.org/abs/2607.09583) | 07-10 (older, not logged before) | Zero/one-shot evaluation. It concludes the backbone transfers but the multimodal decoder has a semantic gap, and recommends PEFT of the decoder and text encoder. The abstract gives no instance-AP numbers; no code linked | `skip`: zero-shot only. Our SAM 3 baseline (0.2399) is already a fine-tuned comparison point |
+| [IGN ORTHO Express 2026](https://forum.openstreetmap.fr/t/ign-ortho-express-2026/41923) | 10-12 | Since 10-07: Orne (with an 8 cm test render on four small zones), Ain, north-west Isère, Savoie, and Rhône. On 10-09 a user asked about 92 (Hauts-de-Seine). The reply: no information on *satellite* coverage, which would appear first in the ORTHO-EXPRESS "MIXTE" TMS layer. So the Paris inner ring may get only satellite-based 2026 coverage | `watch`: still no Paris/92/93/94. Do not plan on 2026 aerial ortho for Paris |
+| [IGNF on Hugging Face](https://huggingface.co/IGNF) | — | Newest dataset is still FLAIR-HUB (06-05); newest models are the FLAIR-HUB checkpoints (04-28) | **Nothing new** |
+
+**Measured here since the last entry** (details in [experiments.md](experiments.md)):
+- **rerank1**, the HYDRA-style lead from 10-06: a GBDT re-ranker on cached ms1
+  detections reaches **0.2411 test AP**, level with SAM 3 (0.2399) and +0.010 over ms1.
+  The 10-06 `act` on HYDRA is now `measured here`.
+- **Label offsets** are real and per building: two models agree on the offset 60% of
+  the time, against 3% under the null.
+- **al1**: training on per-building realigned labels gives **no gain** (0.2148 vs r10
+  0.2177; level on realigned test). Label offsets cost about 0.05 AP on the benchmark,
+  which is a ceiling on what any method can show on misaligned test labels, not a lead.
+  Training-side realignment (Align and Segment 09-29, OMAF 10-05) is now
+  `measured here`.
+
+**Takeaway.**
+- Nothing published in this window changes the plan. No new instance-level building,
+  Mask R-CNN/Mask2Former, label-alignment or SAM 3 work appeared.
+- LiG-DETR is the only method worth watching, for small objects. Revisit it if code
+  with a mask head appears.
+- Both leads from 10-07 have now been measured: the re-ranker helped, realignment did
+  not. The literature logged so far offers no untried, evidence-backed next step for
+  the ~0.05 AP lost to label offsets.
