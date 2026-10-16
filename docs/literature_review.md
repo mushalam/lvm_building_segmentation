@@ -511,3 +511,52 @@ Revised (v2+) versions inside the window are not covered.
 - Both leads from 10-07 have now been measured: the re-ranker helped, realignment did
   not. The literature logged so far offers no untried, evidence-backed next step for
   the ~0.05 AP lost to label offsets.
+
+## 2026-10-16
+
+**Searched.** The window is 2026-10-09 18:00Z to 10-16. It picks up where 10-12 stopped.
+There is no 10-13 to 10-15 entry, so this one covers everything since then:
+- arXiv API, cs.CV OR eess.IV by submittedDate. 776 entries: 10-09 (evening) 23,
+  10-10 74, 10-11 65, 10-12 138, 10-13 188, 10-14 148, 10-15 140. The newest is
+  10-15 17:59Z; 10-15 evening and 10-16 are not announced yet, so the next entry
+  should start there.
+- Keyword filter over titles and abstracts: footprint, rooftop, instance segmentation,
+  mask scoring/quality, rescoring, re-rank, SAM, segment anything, aerial, remote
+  sensing, off-nadir, cadastre, label noise, noisy label, misalign, small object,
+  Mask R-CNN, Mask2Former, Mask DINO, LiDAR, urban, orthophoto, satellite, building
+  extraction/segmentation/footprint. 82 hits; the abstracts of the 8 plausible ones
+  were read.
+- Open threads from 10-12: LiG-DETR abstract page and a GitHub repository search;
+  facebookresearch/sam3 commits since 10-09 and releases (GitHub API); the IGN ORTHO
+  Express 2026 forum thread (Discourse API, last posts).
+- Also checked: IGNF on Hugging Face; GitHub repositories created since 10-09 (building
+  segmentation, SAM 3 remote sensing, footprint alignment, aerial instance
+  segmentation); web searches for aerial building instance segmentation, misaligned
+  footprint labels, and IGN BD TOPO / BD ORTHO news.
+
+Revised (v2+) versions inside the window are not covered.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [TAG: calibrating SAM3 for universal image segmentation without dense supervision](https://arxiv.org/abs/2610.14651) ([code](https://github.com/MiSsU-HH/TAG_SAM3)) | 10-10 | Says SAM 3's downstream bottleneck is *concept recognition* (which concepts are present), not mask quality. Uses 3.1M-parameter low-rank adapters on a frozen SAM 3, trained with image-level labels only. Mask AP on iSAID (aerial): frozen SAM 3 12.2 → TAG-I 25.5. Cityscapes 36.5 → 41.0. The repo currently holds only the frozen-SAM 3 baseline evaluation; the TAG code and checkpoints come "after acceptance" | `skip`: it fixes zero-shot recognition. Our SAM 3 (0.2399) is already fine-tuned with mask supervision on one class, so recognition is not our gap. The finding that SAM 3 masks are good and the scoring/recognition is the weak part agrees with our re-ranker result |
+| [Hybrid supervised instance segmentation by learning label noise suppression](https://arxiv.org/abs/2610.20412) | 10-14 | Two auxiliary models make pseudo masks from box labels by suppressing foreground/background and instance mislabelling, mixed with some pixel labels. PASCAL VOC and Cityscapes; no numbers in the abstract; no code. The journal reference is Neurocomputing 496 (2022), so this is an old paper newly posted | `skip`: the noise it handles is box-to-mask, not shifted polygons. Nothing for per-building offsets |
+| [Building age estimation from multi-source geospatial data](https://arxiv.org/abs/2610.16320) ([code](https://github.com/littlebeen/RS-buildingAge)) | 10-12 | Uses footprints as *input* (pixel and instance level) with satellite and DSM data to predict age class; new Hong Kong benchmark | `skip`: downstream use of footprints, not extraction |
+| [CityCode / Air2Code](https://arxiv.org/abs/2610.18342) | 10-13 | Builds instance-level parameterised 3D cities from one low-altitude aerial RGB image plus camera parameters | `skip`: 3D generation, oblique UAV |
+| [Wildlife detection and counting in aerial imagery](https://arxiv.org/abs/2610.17067) | 10-12 | Dual-scale detection with density supervision; count MAE −21% vs YOLO11 | `skip`: boxes, oblique, animals |
+| [Beyond the encoder: SAM 2 object pointers](https://arxiv.org/abs/2610.18543) | 10-13 | SAM 2 object pointers carry transferable object-level information (PET/CT tumours) | `skip`: medical. It is an argument that SAM-family per-object tokens could be re-ranker features, but we have no SAM 2 pipeline |
+| Building / dense small-object instance segmentation (aerial, instance-level) | — | **Nothing new** on arXiv or in the web search. New GitHub repos since 10-09 are coursework-level semantic segmentation (Inria SegFormer, U-Net) | — |
+| Label-imagery misalignment / off-nadir offset | — | **Nothing new**. The web search returned only work already logged (OMAF, CVPR 2026, 10-05) and pre-2024 papers | — |
+| Mask2Former / Mask DINO | — | **Nothing new** | — |
+| [LiG-DETR](https://arxiv.org/abs/2610.09511) (10-12 thread) | 10-07 | Still v1 only. The abstract still says "the code will be released"; no paper-specific code link; a GitHub search for LiG-DETR finds nothing | `watch`: unchanged |
+| [SAM 3 / SAM 2](https://github.com/facebookresearch/sam3) (10-12 thread) | 10-14 | One commit since 10-09 (10-14: "Suppress type errors for Pyre upgrade"); the releases page is still empty | **Nothing new** for us |
+| [IGN ORTHO Express 2026](https://forum.openstreetmap.fr/t/ign-ortho-express-2026/41923) (10-12 thread) | 10-12 | Still 98 posts. Nothing after 10-12 08:01Z (Rhône / north Isère). No Paris, 92, 93 or 94 | `watch`: unchanged. Still do not plan on 2026 aerial ortho for Paris |
+| [IGNF on Hugging Face](https://huggingface.co/IGNF), BD TOPO / BD ORTHO | — | Newest dataset is still FLAIR-HUB (06-05); newest models still 04-28. No BD TOPO or BD ORTHO announcement for October found | **Nothing new** |
+
+**Takeaway.**
+- Nothing in this window is actionable. Still no method that tolerates or corrects
+  per-building label offsets at training time beyond what is already `measured here`
+  (al1 realignment) or logged (OMAF, Align and Segment).
+- TAG supports the view behind rerank1, that for SAM 3 the scoring is weaker than the
+  masks, but it targets open-vocabulary recognition and has no released method code.
+- The open threads (LiG-DETR code, ORTHO Express for Paris/92/93/94, SAM 3 releases)
+  are all unchanged.
