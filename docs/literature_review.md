@@ -560,3 +560,54 @@ Revised (v2+) versions inside the window are not covered.
   masks, but it targets open-vocabulary recognition and has no released method code.
 - The open threads (LiG-DETR code, ORTHO Express for Paris/92/93/94, SAM 3 releases)
   are all unchanged.
+
+## 2026-10-21
+
+**Searched.** The window is 2026-10-15 18:00Z to 10-21. It picks up where 10-16 stopped.
+There are no 10-17 to 10-20 entries, so this one covers everything since then:
+- arXiv API, cs.CV OR eess.IV by submittedDate. 592 entries: 10-15 (evening) 32,
+  10-16 119, 10-17 65, 10-18 75, 10-19 154, 10-20 147. The newest is 10-20 17:59Z;
+  10-20 evening and 10-21 are not announced yet, so the next entry should start there.
+- The 10-16 keyword filter, tightened (building only with footprint/extraction/
+  segmentation/instance/detection/outline/polygon; IGN as a whole word) and extended
+  with tree crown, canopy, FLAIR, BD TOPO, label shift and misregistration. 53 hits;
+  the abstracts of the 9 plausible ones were read.
+- Open threads: LiG-DETR and TAG on arXiv (version check) and GitHub (repository search;
+  TAG_SAM3 commits); facebookresearch/sam3 commits since 10-14 plus releases and tags;
+  the IGN ORTHO Express 2026 forum thread (Discourse API).
+- Also checked: IGNF on Hugging Face; restor-foundation/tcd commits and the restor/tcd
+  dataset and models on Hugging Face (OAM-TCD); GitHub repositories created since
+  10-15 (building segmentation, SAM 3 remote sensing, tree crown, footprint alignment,
+  aerial instance segmentation); web searches for misaligned building footprint labels,
+  tree crown instance segmentation with SAM 3, and IGN BD ORTHO / BD TOPO news.
+
+Revised (v2+) versions inside the window are not covered.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [MaskMerge: structure-aware token merging for efficient instance segmentation](https://arxiv.org/abs/2610.22921) | 10-16 | ViT token merging constrained by coarse intermediate masks so that adjacent same-class instances are not fused. iSAID mask AP 33.1 → 36.2 vs ALGM at 182 vs 198 GFLOPs; PanNuke 30.1 → 32.1. No code link | `skip`: an efficiency method for ViT segmenters; our detector is Mask R-CNN and SAM 3 is a baseline. Its "cross-instance fusion" failure mode is the dense-adjacent-buildings case, but only relative to other token-merging methods |
+| [ShadowCast: context-aware shadow augmentation for RS segmentation](https://arxiv.org/abs/2610.23440) | 10-16 (v2 10-20) | Training-time augmentation: takes building/tree masks from the labels, estimates the cast-shadow direction from brightness around them, and pastes synthetic shadows. No network, no metadata. Gains on Vaihingen, Potsdam, LoveDA (semantic); no numbers in the abstract; no code | `watch`: cheap to try as an augmentation, but semantic-only evidence, and it pastes shadows from the (offset) labels, so on our data the shadows would inherit the label offset. Not a fix for the ~0.05 AP offset loss |
+| [Efficient SAM3 adaptation for multi-class semantic segmentation (DCR-SAM)](https://arxiv.org/abs/2610.27960) ([code](https://github.com/set-path/DCR-SAM)) | 10-20 | NeurIPS 2026. Shared visual features across class prompts plus a dense competitive head and a learnable background token; 2.3–10.7% over SOTA and 33× faster than native SAM 3 with many concepts. Code is released (repo created 10-18) | `skip`: multi-class *semantic*; we have one class, so concept competition and multi-prompt latency are not our problems. First public SAM 3 adaptation codebase logged here, useful only as reference training code |
+| [GeoReason: reasoning segmentation in RS](https://arxiv.org/abs/2610.23416) ([code](https://github.com/Fanc0126/GeoReason)) | 10-16 | MLLM "[SEG]-token" reasoning segmentation on EarthReason and RRSIS-D | `skip`: referring/reasoning segmentation |
+| [FocusOVD: open-vocabulary small-object detection](https://arxiv.org/abs/2610.27479) | 10-20 | FPN level reweighting and gated convs for small objects; COCO-OVD novel AP 36.3 | `skip`: open-vocabulary, boxes, COCO |
+| [Three LiDARs, twenty-five datasets: tree-species recognition](https://arxiv.org/abs/2610.22606) ([code](https://github.com/JaeLee18/FOR20K-lidar-tree-species)) | 10-15 | FOR-species20K leaderboard 85%, but a source-disjoint holdout drops the species mean 82% → 36% | `skip`: LiDAR species classification. Another instance of the 10-07/10-12 point that random splits overstate transfer, relevant to the sibling OAM-TCD project's split choice |
+| [PlanarCityLoc](https://arxiv.org/abs/2610.26729), [MatchCityLoc](https://arxiv.org/abs/2610.27110) | 10-19 | UAV pose estimation against LoD city models (planes / surface normals) | `skip`: localisation, not footprints |
+| [FloodVLM-Pix](https://arxiv.org/abs/2610.23377) | 10-16 | Flood VLM benchmark and segmentation | `skip` |
+| Building / dense small-object instance segmentation (aerial, instance-level) | — | **Nothing new** on arXiv or in the web search. New GitHub repos since 10-15 are coursework-level (Inria U-Net; YOLOv8s-seg on Bilecik) | — |
+| Label-imagery misalignment / off-nadir offset | — | **Nothing new**. The web search returned only work already logged (OMAF, CVPR 2026; Align and Segment, 07-10) and pre-2024 papers | — |
+| Mask2Former / Mask DINO | — | **Nothing new** | — |
+| Tree crown instance segmentation / OAM-TCD | — | **Nothing new**. restor-foundation/tcd last commit 2026-03-07; restor/tcd dataset last modified 2024-11; models 2025-07. New repos are small (DeepForest helpers for HOT fAIr, a Solafune canopy-competition repo). The web search returned only BalSAM (2025, already older) | — |
+| [LiG-DETR](https://arxiv.org/abs/2610.09511) (10-12 thread) | 10-07 | Still v1; abstract still says "the code will be released"; a GitHub search finds no LiG-DETR repo | `watch`: unchanged |
+| [TAG](https://arxiv.org/abs/2610.14651) / [TAG_SAM3](https://github.com/MiSsU-HH/TAG_SAM3) (10-16 thread) | 10-14 | Still v1. Last repo push 10-14 (frozen-SAM 3 baseline evaluator only); no TAG method code or checkpoints | `skip` stands: unchanged |
+| [SAM 3](https://github.com/facebookresearch/sam3) (10-12 thread) | — | No commits after 10-14 23:42Z; releases and tags still empty | **Nothing new** |
+| [IGN ORTHO Express 2026](https://forum.openstreetmap.fr/t/ign-ortho-express-2026/41923) (10-12 thread) | — | Still 98 posts; last post 10-12 08:01Z. No Paris, 92, 93 or 94 | `watch`: unchanged. Still do not plan on 2026 aerial ortho for Paris |
+| [IGNF on Hugging Face](https://huggingface.co/IGNF), BD TOPO / BD ORTHO | — | Newest dataset is still FLAIR-HUB (06-05); newest models still 04-28. No BD TOPO or BD ORTHO announcement found | **Nothing new** |
+
+**Takeaway.**
+- Nothing in this window is actionable. Still no published method for tolerating
+  per-building label offsets at training time beyond what is `measured here` (al1) or
+  already logged (OMAF, Align and Segment).
+- ShadowCast is the only cheap, plug-in idea (an augmentation), but it has semantic-only
+  evidence and does not touch the offset problem; low priority.
+- All open threads (LiG-DETR code, TAG code, SAM 3 releases, ORTHO Express for
+  Paris/92/93/94) are unchanged.
