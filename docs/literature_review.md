@@ -611,3 +611,56 @@ Revised (v2+) versions inside the window are not covered.
   evidence and does not touch the offset problem; low priority.
 - All open threads (LiG-DETR code, TAG code, SAM 3 releases, ORTHO Express for
   Paris/92/93/94) are unchanged.
+
+## 2026-10-22
+
+**Searched.** The window is 2026-10-20 18:00Z to 10-22. It picks up where 10-21 stopped:
+- arXiv API, cs.CV OR eess.IV by submittedDate. 139 entries: 10-20 (evening) 23,
+  10-21 116. The newest is 10-21 17:58Z; 10-21 evening and 10-22 are not announced yet,
+  so the next entry should start there.
+- The 10-21 keyword filter (footprint, rooftop, instance segmentation, mask scoring/
+  quality, re-rank, SAM / SAM 2 / SAM 3, aerial, remote sensing, off-nadir, label noise,
+  misalign, misregistration, label shift, small object, Mask R-CNN, Mask2Former, Mask
+  DINO, LiDAR, orthophoto, tree crown, canopy, FLAIR, BD TOPO, IGN, building +
+  footprint/extraction/segmentation/instance/detection/outline/polygon). 18 hits; the
+  abstracts of the 6 plausible ones were read.
+- Open threads: LiG-DETR, TAG and ShadowCast on arXiv (version and code-link check);
+  GitHub searches for LiG-DETR and ShadowCast; TAG_SAM3 commits; facebookresearch/sam3
+  commits since 10-14 plus releases and tags; the IGN ORTHO Express 2026 forum thread
+  (Discourse API); LACE (09-22 entry) version and code.
+- Also checked: IGNF on Hugging Face; restor-foundation/tcd and restor/tcd on Hugging Face
+  (OAM-TCD); GitHub repositories created since 10-20 (building segmentation, building
+  footprint, SAM 3 remote sensing, tree crown, footprint alignment, aerial instance
+  segmentation); web searches for misaligned building footprint labels with a robust
+  loss, tree crown instance segmentation on OAM-TCD, and IGN BD ORTHO / BD TOPO news.
+
+Revised (v2+) versions inside the window are not covered.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [Multiclass boundary refinement with neural cellular automata (BRNCA)](https://arxiv.org/abs/2610.30007) | 10-21 | A small learned local rule iterated on the class probabilities of a frozen segmenter to fix boundaries placed "a few pixels away". Mean Boundary IoU 46.63 → 48.99 (+2.36), mostly on woodland (+8.5). Land-cover semantic segmentation; no code link | `skip`: post-hoc semantic boundary refinement. It moves boundaries towards where the *labels* put them, so it cannot help when the labels themselves are offset. The woodland gain is a weak hint for the sibling tree-crown project, but there it would be a semantic add-on to an instance model |
+| [OpenEarth-OVS44](https://arxiv.org/abs/2610.29642) | 10-21 | Open-vocabulary RS segmentation dataset: 290,587 expert-verified segments, 2,832 sub-metre RGB images (plus 1,341 RGB-SAR pairs), 40 cities in France, Japan and the US, 44 classes. "Dataset and code will be released" | `watch`: it includes French cities, but it is semantic, multi-class and not yet released. Check once out whether the France tiles are IGN ortho and whether there is a building class with instance-separable segments |
+| [RiO-DETRv2](https://arxiv.org/abs/2610.29159) ([code](https://github.com/RicePasteM/RiO-DETRv2)) | 10-21 | Real-time oriented DETR with distributional boundary refinement; DOTA mAP50-95 53.7/54.1 (+1.2/+1.5 over RiO-DETR) | `skip`: oriented boxes, not masks |
+| [Small UAS damage assessment at CURSE'26](https://arxiv.org/abs/2610.29777) | 10-21 | Operational report: building damage micro-F1 0.834 with no manual misalignment correction; road damage failed because of road-map/image misalignment | `skip`: classification of given footprints. Another field report that vector/image misalignment is the dominant failure mode, nothing methodological |
+| [LLMSeg](https://arxiv.org/abs/2610.29409) | 10-21 | Training-free MLLM segmentation by tracing B-splines in boxes; claims parity with SAM 3 on ReasonSeg/RefCOCO/LVIS/COCO/SA-Co with a Gemini backend | `skip`: per-instance LLM calls do not scale to thousands of dense buildings per tile |
+| [GuidedSAM-Plume](https://arxiv.org/abs/2610.29825) | 10-21 | Interactive SAM 2 for volcanic plumes | `skip` |
+| Building / dense small-object instance segmentation (aerial, instance-level) | — | **Nothing new** on arXiv or in the web search. New GitHub repos since 10-20 are coursework-level (Inria U-Net; YOLOv8s-seg on Bilecik, already seen 10-21) or footprint tooling (a GlobalBuildingAtlas tile index) | — |
+| Label-imagery misalignment / off-nadir offset | — | **Nothing new**. The web search (including "robust loss") returned only work already logged (OMAF, CVPR 2026; Align and Segment, 07-10; DragOSM; ObliCity) and the 2020 Fobi et al. paper. Still no training-time offset-tolerant loss for instance segmentation | — |
+| Mask2Former / Mask DINO, SAM 3 fine-tuning or distillation | — | **Nothing new** | — |
+| Tree crown instance segmentation / OAM-TCD | — | **Nothing new**. restor-foundation/tcd last push still 2026-03-07; restor/tcd dataset 2024-11; models 2025-07. No new tree-crown repos since 10-20 | — |
+| [LACE](https://arxiv.org/abs/2609.26549) (09-22 thread) | 09-22 | Still v1; no code link in the abstract; a GitHub search finds no repo | `watch`: unchanged |
+| [LiG-DETR](https://arxiv.org/abs/2610.09511) (10-12 thread) | 10-07 | Still v1; abstract still says "the code will be released"; the GitHub search hits are unrelated (DETR-Lightning etc.) | `watch`: unchanged |
+| [TAG](https://arxiv.org/abs/2610.14651) / [TAG_SAM3](https://github.com/MiSsU-HH/TAG_SAM3) (10-16 thread) | 10-10 | Still v1. Last repo push 10-14 (frozen-SAM 3 baseline evaluator only) | `skip` stands: unchanged |
+| [ShadowCast](https://arxiv.org/abs/2610.23440) (10-21 thread) | 10-20 (v2) | Still v2; no code link in the abstract; no GitHub repo found | `watch`: unchanged, low priority |
+| [SAM 3](https://github.com/facebookresearch/sam3) (10-12 thread) | — | No commits after 10-14 23:42Z; releases and tags still empty | **Nothing new** |
+| [IGN ORTHO Express 2026](https://forum.openstreetmap.fr/t/ign-ortho-express-2026/41923) (10-12 thread) | — | Still 98 posts; last post 10-12 08:01Z (Rhône / north Isère). The 10-09 question about 92 got "no information". No Paris, 92, 93 or 94 | `watch`: unchanged. Still do not plan on 2026 aerial ortho for Paris |
+| [IGNF on Hugging Face](https://huggingface.co/IGNF), BD TOPO / BD ORTHO | — | Newest dataset is still FLAIR-HUB (06-05); newest models still 04-28. The web search found only data.gouv.fr catalogue pages, no October announcement | **Nothing new** |
+
+**Takeaway.**
+- Nothing in this window is actionable. There is still no published training-time
+  method for tolerating per-building label offsets in instance segmentation beyond what
+  is `measured here` (al1) or already logged (OMAF, Align and Segment, DragOSM).
+- OpenEarth-OVS44 is the only new item worth revisiting: it has French sub-metre
+  imagery, but it is semantic and unreleased.
+- All open threads (LiG-DETR code, TAG code, ShadowCast code, LACE code, SAM 3
+  releases, ORTHO Express for Paris/92/93/94) are unchanged.
