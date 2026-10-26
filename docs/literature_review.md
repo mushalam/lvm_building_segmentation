@@ -664,3 +664,59 @@ Revised (v2+) versions inside the window are not covered.
   imagery, but it is semantic and unreleased.
 - All open threads (LiG-DETR code, TAG code, ShadowCast code, LACE code, SAM 3
   releases, ORTHO Express for Paris/92/93/94) are unchanged.
+
+## 2026-10-26
+
+**Searched.** The window is 2026-10-21 18:00Z to 10-26. It picks up where 10-22 stopped.
+There are no 10-23 to 10-25 entries, so this one covers the whole gap:
+- arXiv API, cs.CV OR eess.IV by submittedDate. 256 entries: 10-21 (evening) 18,
+  10-22 129, 10-23 109. The newest is 10-23 17:59Z; 10-23 evening and the weekend
+  submissions are not announced yet, so the next entry should start at 10-23 18:00Z.
+- The 10-22 keyword filter, extended with EMA, weight averaging, model soup, stochastic
+  weight, memorisation and collapse for the sibling tree-crown project's late-collapse
+  question. 31 hits; the abstracts of the 9 plausible ones were read.
+- Open threads: LiG-DETR, TAG, ShadowCast, OpenEarth-OVS44 and LACE on arXiv (version
+  and code-link check); GitHub searches for LiG-DETR, ShadowCast, OpenEarth-OVS44, LACE;
+  TAG_SAM3 commits; facebookresearch/sam3 commits since 10-14 plus releases and tags;
+  the IGN ORTHO Express 2026 forum thread (Discourse API).
+- Also checked: IGNF on Hugging Face; restor-foundation/tcd and restor/tcd on Hugging Face
+  (OAM-TCD); GitHub repositories created since 10-21 (building segmentation, building
+  footprint, SAM 3 remote sensing, tree crown, OAM-TCD, footprint alignment, aerial
+  instance segmentation; READMEs of the 4 plausible ones read); web searches for
+  misaligned / off-nadir building footprint instance segmentation, SAM 3 fine-tuning in
+  remote sensing, OAM-TCD results, EMA / weight averaging with late-training collapse in
+  Mask R-CNN, TEGNet (BJ Crown paper), and IGN BD ORTHO / BD TOPO news.
+
+Revised (v2+) versions inside the window are not covered.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [Sam-Correction: adaptive label-noise reduction](https://arxiv.org/abs/2610.32377) | 10-23 | Medical semantic segmentation: a segmenter trained alongside prompts SAM, and SAM's masks progressively replace the noisy GT. No clean labels needed; no numbers in the abstract; no code link | `skip`: this is foundation-model label correction, which is the same idea as the realigned labels that are `measured here` (al1) and gave no gain. Its noise is boundary/annotation noise, not a rigid per-building offset |
+| [BJ Crown dataset](https://github.com/qinglin-aa/BJ-Crown-Dataset) | repo 10-24 | UAV RGB tree-crown instance dataset for "TEGNet: A Topological Energy Guided Network for ITC delineation": 5,527 patches of 512 px, 12,813 crowns, star-anise plantation in Yunnan. 2.41 cm GSD (train/val/test1) plus a held-out 80 m flight at 3.98 cm (test2). Crowns are strictly disjoint in the masks. The TEGNet paper was not found on arXiv or the web | `skip`: single-species closed plantation at 2–4 cm GSD, far from OAM-TCD (10 cm, global). Its altitude-held-out test split is another example of the 10-21 point about evaluating on a shifted split |
+| [Tree Crown Segment (QGIS plugin)](https://github.com/NikitinaAD/tree-crown-segment) | repo 10-23 | QGIS plugin with a packaged Windows inference engine for crown polygons on 3–8 cm UAV orthomosaics. The README does not state the model or any metric | `skip`: tooling |
+| [CVP-BAA](https://arxiv.org/abs/2610.30672) | 10-22 | Hybrid PEFT for SAM: convolutional features prepended to K/V in chosen ViT blocks plus a high-frequency "boundary-aware" adapter; medical, five benchmarks | `skip`: SAM (v1) semantic PEFT on medical data; we use SAM 3 as a baseline only |
+| [WeVisOne-VL](https://arxiv.org/abs/2610.31329) | 10-22 | VLM with a pixel decoder behind an `<OBJ>` token for detection, counting, segmentation and matting; claims leading results on 30+ benchmarks; to be open-sourced | `skip`: per-query VLM decoding does not suit thousands of dense buildings per tile |
+| [OlmoEarth v1.3](https://arxiv.org/abs/2610.32294), [Earth embeddings are decomposable](https://arxiv.org/abs/2610.32617) | 10-23 | 10 m global annual embeddings (released); decomposition of embedding products into fire / clearing / crop concepts | `skip`: 10 m resolution, no instance task |
+| [DBEFNet](https://github.com/easonzlYang/DBEFNet) | repo 10-23 | Urban-village semantic segmentation fusing imagery with five building-morphology rasters | `skip`: semantic, uses footprints as input |
+| Building / dense small-object instance segmentation (aerial, instance-level) | — | **Nothing new** on arXiv or in the web search. New GitHub repos since 10-21 are coursework (Inria U-Net, already seen), dataset-sales listings, or footprint tooling (Overture download, basemap.de building simplification) | — |
+| Label-imagery misalignment / off-nadir offset | — | **Nothing new**. The web search returned only work already logged (Align and Segment; DragOSM) and pre-2026 papers (PolyFootNet/OBMv2, LOFT, Neupane et al.) | — |
+| Mask2Former / Mask DINO, SAM 3 fine-tuning or distillation | — | **Nothing new**. The web search returned only older SAM 3 RS papers (2512.15564, 2607.09583, 2512.08730). New repo ST-SAM3 (10-26) is salient-object detection | — |
+| Late-training collapse, EMA / weight averaging | — | **Nothing new** in the window. No arXiv hit was relevant (the "EMA"/"collapse" hits are video anomaly detection, federated DA and representation collapse). The web search returned only older general work ([EMA dynamics, 2411.18704](https://arxiv.org/abs/2411.18704)), which notes that EMA weights need BatchNorm statistics recomputed for large windows; with frozen BN in Mask R-CNN this should not bite, but it is worth confirming in the sibling project if the EMA run is unexpectedly worse | — |
+| Tree crown instance segmentation / OAM-TCD | — | **Nothing new** beyond BJ Crown above. restor-foundation/tcd last push still 2026-03-07; restor/tcd dataset 2024-11; models 2025-07. The web search found only LACE (09-22, already logged) | — |
+| [LiG-DETR](https://arxiv.org/abs/2610.09511) (10-12 thread) | 10-07 | Still v1; abstract still says "the code will be released"; GitHub search hits are unrelated | `watch`: unchanged |
+| [TAG](https://arxiv.org/abs/2610.14651) / [TAG_SAM3](https://github.com/MiSsU-HH/TAG_SAM3) (10-16 thread) | 10-10 | Still v1. Last commit still 10-14 (repo metadata touched 10-21, no new commits) | `skip` stands: unchanged |
+| [ShadowCast](https://arxiv.org/abs/2610.23440) (10-21 thread) | 10-20 (v2) | Still v2; no code link; no GitHub repo found | `watch`: unchanged, low priority |
+| [OpenEarth-OVS44](https://arxiv.org/abs/2610.29642) (10-22 thread) | 10-21 | Still v1, "dataset and code will be released"; no GitHub repo found | `watch`: unchanged |
+| [LACE](https://arxiv.org/abs/2609.26549) (09-22 thread) | 09-22 | Still v1; no code link; no repo found | `watch`: unchanged |
+| [SAM 3](https://github.com/facebookresearch/sam3) (10-12 thread) | 10-23 | One commit, 10-23 19:49Z ("Remove unused type error suppressions"); releases and tags still empty | **Nothing new** that matters |
+| [IGN ORTHO Express 2026](https://forum.openstreetmap.fr/t/ign-ortho-express-2026/41923) (10-12 thread) | — | Still 98 posts; last post 10-12 08:01Z. No Paris, 92, 93 or 94 | `watch`: unchanged. Still do not plan on 2026 aerial ortho for Paris |
+| [IGNF on Hugging Face](https://huggingface.co/IGNF), BD TOPO / BD ORTHO | — | Newest dataset still FLAIR-HUB (06-05); newest models still 04-28. The web search found no October BD ORTHO or BD TOPO announcement | **Nothing new** |
+
+**Takeaway.**
+- Nothing in this window is actionable. Sam-Correction is the only item touching label
+  noise, and it is a variant of label correction, which is already `measured here` (al1)
+  with no gain.
+- Nothing new on EMA or late collapse for the sibling tree-crown project; its EMA run
+  remains the evidence to wait for.
+- All open threads (LiG-DETR code, TAG code, ShadowCast code, OpenEarth-OVS44 release,
+  LACE code, SAM 3 releases, ORTHO Express for Paris/92/93/94) are unchanged.
