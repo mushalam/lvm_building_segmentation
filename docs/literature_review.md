@@ -720,3 +720,75 @@ Revised (v2+) versions inside the window are not covered.
   remains the evidence to wait for.
 - All open threads (LiG-DETR code, TAG code, ShadowCast code, OpenEarth-OVS44 release,
   LACE code, SAM 3 releases, ORTHO Express for Paris/92/93/94) are unchanged.
+
+## 2026-11-02
+
+**Searched.** The window is 2026-10-23 18:00Z to 11-02. It picks up where 10-26 stopped.
+There are no 10-27 to 11-01 entries, so this one entry covers the whole gap:
+- arXiv API, cs.CV OR eess.IV by submittedDate. 765 entries: 10-23 (evening) 16,
+  10-24 67, 10-25 62, 10-26 141, 10-27 155, 10-28 71, 10-29 174, 10-30 79. The newest
+  is 10-30 17:59Z; 10-30 evening and the weekend submissions are not announced yet, so
+  the next entry should start at 10-30 18:00Z.
+- The 10-26 keyword filter, extended with GSD / ground sampling, resolution-robust,
+  scale-invariant, degradation-aware, super-resolution, hard example, early stopping,
+  satellite / UAV / drone / forest / tree, plus a second sweep for label structure and
+  schedule questions (weakly supervised, crowd / group annotation, partial / incomplete
+  / sparse labels, pseudo-label, downsampling, low resolution, tiling, tiny object,
+  overfit, curriculum). 127 + 75 hits; the abstracts of the 19 plausible ones were read.
+- Open threads: LiG-DETR, TAG, ShadowCast, OpenEarth-OVS44 and LACE on arXiv (version,
+  comments and code-link check); GitHub searches for LiG-DETR, ShadowCast,
+  OpenEarth-OVS44, LACE; TAG_SAM3 commits; facebookresearch/sam3 commits since 10-23
+  plus releases and tags; the IGN ORTHO Express 2026 forum thread (Discourse API).
+- Also checked: the IGN news feed on cartes.gouv.fr (`/aide/feed/actualites/ign.json`;
+  not used in earlier entries) and its "Mises à jour Octobre 2026" page; IGNF on Hugging
+  Face; restor-foundation/tcd and restor/tcd on Hugging Face (OAM-TCD); GitHub
+  repositories created since 10-23 (building segmentation, building footprint, SAM 3
+  remote sensing / aerial, tree crown, OAM-TCD, canopy segmentation, footprint alignment,
+  aerial instance segmentation, BD TOPO, BD ORTHO; READMEs of the 5 plausible ones read);
+  web searches for OAM-TCD results, SAM 3 fine-tuning for buildings, multi-GSD /
+  resolution-robust aerial segmentation, off-nadir / misaligned footprint labels, group
+  or partial labels in tree instance segmentation, and IGN BD ORTHO / BD TOPO news. The
+  web searches surfaced CrownViM (MDPI *Remote Sensing* 18, 860, an SSM tree-crown model
+  evaluated on OAM-TCD), but the MDPI page returned 403 and the PDF was too large to
+  fetch, so it is not assessed here.
+
+Revised (v2+) versions inside the window are not covered.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [MixSIS: mixed-supervised instance segmentation](https://arxiv.org/abs/2610.37138) ([code](https://github.com/chwilms/MixSIS)) | 10-27 | BMVC 2026. Annotation level (mask, box, point, image) is chosen per instance, even within one image. Baseline AnnsMixer: SAM pseudo-masks from box/point prompts (CAM for image-level), filtered and merged with the real masks, then a plain Mask R-CNN with default settings. COCO mixes 0.323 / 0.295 / 0.266 mAP; box-only WSIS 0.345, point 0.262, image 0.220; case studies claim −90% annotation time or +34%. GPL-3.0 code, pseudo-labels and models released | `watch` (sibling tree project): the closest thing yet to a recipe for labels of uneven quality, and it uses our detector unchanged. But OAM-TCD canopy groups are a level it does not cover: a region mask with unlabelled trees inside. Its only route for those is SAM pseudo-masks, which is label correction, and realigned labels are `measured here` (al1) with no gain on buildings. Worth reading only if group handling (ignore region / pseudo-trees inside groups) gets scheduled |
+| [Dynamic query as budgeting for tiny object detection (BUTR)](https://arxiv.org/abs/2610.33430) ([code](https://github.com/zhangyi-magic/BUTR)) | 10-24 | NeurIPS 2026. In DETR-type tiny-object detectors the gain from "dynamic queries" comes from *how many* queries are decoded, not which. A non-learned budgeter sets Top-K(x) from encoder confidences. AI-TOD-v2 35.7 AP, VisDrone 29.8 AP at 800 px; on a dense grain-counting set BUTR-L matches 1100-query baselines (58.0 AP) with 378 mean queries. Code and two checkpoints released | `skip` for Mask R-CNN (boxes only; RPN has no query cap). Keep in mind for any query-based model (SAM 3, Mask2Former, Mask DINO): a fixed query count is a recall ceiling on tiles with hundreds of small trees or buildings |
+| [What survives label downsampling? (MatchDown)](https://arxiv.org/abs/2610.39880) | 10-29 | Rasterised label maps downsampled by strided / nearest / majority pooling silently drop small regions: 4–5× more lost on COCO at factor 8 than a matching-based target. No region lost by majority pooling can be recovered above IoU 0.5. Semantic / nucleus (star-convex) heads; no code link | `skip` as a method; Mask R-CNN builds per-instance mask targets from each instance via RoIAlign, so instances do not vanish. One thing to confirm in the sibling project: that the ×2/×3/×4 degraded copies rescale instance polygons (or per-instance masks), not a single label raster. At ×4 the median 35 px tree is about 9 px |
+| [Neighbourhood shortcuts in building damage assessment](https://arxiv.org/abs/2610.38162) ([code](https://github.com/SummerTide/neighbourhood-shortcut-bda)) | 10-28 | Nine BDA models judge buildings by their neighbours: 73–87% of intact buildings are called damaged once moved into a damaged neighbourhood. A building-only expert plus a context expert trained on swapped neighbourhoods cuts this by 40–69% without retraining the base model | `skip`: damage classification of given footprints. The pixel-preserving "move the building" test is a neat diagnostic for context reliance, but nothing in our pipeline needs it now |
+| [CASE: segmentation from positive and negative visual exemplars](https://arxiv.org/abs/2610.39396) ([code](https://github.com/WongKinYiu/FSS-CASE)) | 10-29 | ACCV 2026. Frozen SAM 3 does not consistently treat negative visual exemplars as exclusion evidence; a LoRA adaptation (CPA) fixes this on COCO/PACO few-shot tasks | `skip`: SAM 3 is a baseline here. If anyone tries exemplar prompts on the SAM 3 baseline, do not expect negative exemplars to suppress false positives without adaptation |
+| [Sentinel-2 to 1 m cross-sensor SR (CrossVAR)](https://arxiv.org/abs/2610.34742) ([code](https://github.com/SHANOAL/RSSR)) | 10-26 | Real ×10 Sentinel-2 → Jilin-1 SR benchmark (11,559 pairs); 27.60 dB PSNR | `skip`: SR to 1 m, far coarser than our 10–20 cm, and not a robustness method |
+| [Dreams are cheaper than flights](https://arxiv.org/abs/2610.41030) | 10-29 | CoRL 2026. World-model-generated drone frames (87.5% of clips rejected by an expert) raise wildlife detection mAP@50–95 by 4.3% when added to real data | `skip`: video, boxes, wildlife |
+| [AVID](https://arxiv.org/abs/2610.40949), [SAGE](https://arxiv.org/abs/2610.36719), [DRSP rooftop solar](https://arxiv.org/abs/2610.41111), [TreeNext](https://arxiv.org/abs/2610.37784), [PhySeg](https://arxiv.org/abs/2610.36722) | 10-27 to 10-30 | RGB-IR tiny drone/bird benchmark; a ViT-Adapter backbone (COCO 55.3 mask AP, code after internal review); rooftop solar regression from satellite; LiDAR tree DBH (segmentation errors dominate); SAM refinement for phytoplankton | `skip` |
+| Building / dense small-object instance segmentation (aerial, instance-level) | — | **Nothing new** on arXiv or in the web search. New GitHub repos since 10-23 are coursework (U-Net vs SegFormer on SpaceNet 2 Paris; Open Cities Dar es Salaam), a Faster R-CNN building-typology repo, footprint tooling (Overture/OSM extracts) and USBF (a GlobalBuildingAtlas update workflow with frozen models) | — |
+| Label-imagery misalignment / off-nadir offset | — | **Nothing new**. The web search returned only work already logged (DragOSM; LOFT / OBM / PolyFootNet family; Neupane et al.) | — |
+| Mask2Former / Mask DINO, SAM 3 fine-tuning or distillation | — | **Nothing new** beyond CASE above. The web search returned only older SAM 3 RS papers (2512.15564, 2607.09583) | — |
+| Tree crown instance segmentation / OAM-TCD | — | **Nothing new** that is assessable. restor-foundation/tcd last push still 2026-03-07; restor/tcd dataset 2024-11; models 2025-07. New repos: a Detectron2 ITCD inference pipeline with tile-edge filtering and spatial NMS (tooling), SAM 2 + LiDAR crown reconstruction at 5 cm (UAV_HASM_Tree), a Christchurch pilot with Esri's model (54 of 82 detections accepted, recall not measured). The web search found only older 2026 work (ZS-TreeSeg 2602.00470, LiDAR pseudo-labels 2602.13022) and LACE | — |
+| Small-tree recall, canopy-group / partial labels, short schedules / early stopping, GSD-robust training or inference | — | **Nothing new** beyond MixSIS, BUTR and MatchDown above. No paper in the window studies training on degraded copies, scale-matched tiling at inference, or overfitting after the first epoch. The multi-GSD web search returned only older work (Cross-Scale MAE, SatDINO) and an ISPRS 2026 paper on ground resolved distance vs nominal GSD (not opened) | — |
+| [LiG-DETR](https://arxiv.org/abs/2610.09511) (10-12 thread) | 10-07 | Still v1; abstract still says "The code will be released"; GitHub search hits are unrelated | `watch`: unchanged |
+| [TAG](https://arxiv.org/abs/2610.14651) / [TAG_SAM3](https://github.com/MiSsU-HH/TAG_SAM3) (10-16 thread) | 10-10 | Still v1. Last commit still 10-14 (frozen-SAM 3 baseline evaluator only) | `skip` stands: unchanged |
+| [ShadowCast](https://arxiv.org/abs/2610.23440) (10-21 thread) | 10-20 (v2) | Still v2; no code link; no GitHub repo found | `watch`: unchanged, low priority |
+| [OpenEarth-OVS44](https://arxiv.org/abs/2610.29642) (10-22 thread) | 10-21 | Still v1, "The dataset and code will be released"; no GitHub repo found | `watch`: unchanged, not released |
+| [LACE](https://arxiv.org/abs/2609.26549) (09-22 thread) | 09-22 | Still v1. The arXiv comment says "Code and model checkpoints to be released upon publication"; no repo found | `watch`: unchanged |
+| [SAM 3](https://github.com/facebookresearch/sam3) (10-12 thread) | — | No commits after 10-23 19:49Z (already logged 10-26); releases and tags still empty | **Nothing new** |
+| [IGN ORTHO Express 2026](https://forum.openstreetmap.fr/t/ign-ortho-express-2026/41923) (10-12 thread) | 10-29 | Now 101 posts. Vienne (86) added 10-29; two later posts are banter about an image glitch. IGN's [October updates page](https://cartes.gouv.fr/aide/fr/partenaires/ign/generalites-ign/actualites/2026-10-mises-a-jour/) lists ORTHO Express 2026 for D001, D022, D025, D039, D061 and a D038/D073 zone, and BD ORTHO 2026 for D035, D070, D090. No Paris, 92, 93 or 94 anywhere | `watch`: unchanged. Still do not plan on 2026 aerial ortho for Paris |
+| [BD TOPO buildings and the RNB](https://cartes.gouv.fr/aide/fr/partenaires/ign/generalites-ign/actualites/2026-09-bd-topo-rnb/) | 09-22 (first seen; predates the window) | Buildings are updated by photogrammetric restitution, about thirty départements a year; footprints over 20 m² are mapped "quasi exhaustively" every 3 years. About 600,000 objects under 5 m² are to be merged into adjacent buildings or deleted, visible in the **December 2026** edition. RNB IDs will be refreshed weekly from December. No positional-accuracy figures | `watch`: if the building labels are ever re-pulled from BD TOPO after December, tiny objects and some outlines will change. Pin the edition used for the current train/test labels so AP stays comparable. BD TOPO edition 2026-09 is out (October updates page) |
+| IGN news feed, [IGNF on Hugging Face](https://huggingface.co/IGNF) | 10-22 to 10-23 | In the window the feed has only SCAN 25 (new edition), RPG 2025 and an imagery-usage survey. IGNF on Hugging Face unchanged: newest dataset still FLAIR-HUB (06-05), newest models still 04-28 | **Nothing new** |
+
+**Takeaway.**
+- Nothing in this ten-day window is `act`. The only item that bears on the sibling
+  tree project's label-structure problem is MixSIS. It shows that a plain Mask R-CNN can
+  be trained on per-instance mixed supervision via SAM pseudo-masks. But it has no notion
+  of a group region with unlabelled instances inside, so the canopy-group question is
+  still open.
+- Small-tree recall and GSD robustness: nothing new. One cheap check came out of
+  MatchDown: confirm that the degraded ×2–×4 copies rescale instance geometry rather
+  than downsampling a label raster.
+- Buildings: no new offset-tolerant method. The BD TOPO December 2026 edition will
+  merge or delete sub-5 m² objects, so pin the label edition.
+- All open threads (LiG-DETR code, TAG code, ShadowCast code, OpenEarth-OVS44 release,
+  LACE code, SAM 3 releases, ORTHO Express for Paris/92/93/94) are unchanged.
