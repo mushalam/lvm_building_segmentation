@@ -1001,3 +1001,76 @@ Revised (v2+) versions inside the window are not covered.
 - All open threads (LiG-DETR code, TAG code, ShadowCast code, OpenEarth-OVS44 release, LACE
   code, AirPan release, SAM 3 releases, ORTHO Express for Paris/92/93/94, BD TOPO 264) are
   unchanged.
+
+## 2026-11-06
+
+**Searched.** The window is 2026-11-04 19:00Z to 11-06. It picks up where 11-05 stopped:
+- arXiv API, cs.CV OR eess.IV by submittedDate. 135 entries: 11-04 (evening) 11,
+  11-05 124. The newest is 11-05 18:59Z, so the next entry should start at 11-05 19:00Z.
+- The 11-05 keyword filter (title and abstract) gave 80 hits, all scanned by title. The
+  abstracts of the 8 plausible ones were read, and the full HTML of one (2611.08003).
+- Open threads: LiG-DETR, TAG, ShadowCast, OpenEarth-OVS44, LACE, MixSIS, AirPan (LoD-Loc
+  v4), the mammography resolution study, the cell-tracking sparse-label paper, PTQ4SAM3 and
+  MV-PVMapper on arXiv (version, comments and code-link check); GitHub searches for
+  LiG-DETR, ShadowCast, OpenEarth-OVS44, LACE, AirPan, LoD-Loc v4 and the two new papers
+  below; commits on MixSIS, TAG_SAM3, cascade-sam3, CanopyRS, restor-foundation/tcd,
+  PTQ4SAM3, road-detection-sam3-dinov3 and facebookresearch/sam3 (plus releases and tags);
+  facebook SAM 3 models on Hugging Face; the IGN ORTHO Express 2026 forum thread (Discourse
+  API); the Géoplateforme download service for BD TOPO D075 and BD ORTHO D075/092/093/094
+  (all pages of each feed).
+- Also checked: IGNF and restor on Hugging Face; GitHub repositories created since 11-04
+  (the 11-05 query list plus "tree detection aerial", "mask r-cnn building", "off-nadir",
+  "orthophoto segmentation"; READMEs of the 3 plausible ones read); web searches for
+  November building instance segmentation, OAM-TCD results, BD TOPO édition décembre 2026,
+  SAM 3 fine-tuning for RS instance segmentation, misaligned / off-nadir footprint labels
+  with ignore regions, ORTHO Express for Paris and the petite couronne, group / crowd
+  labels in crown segmentation, seed variance reporting in RS instance segmentation, and
+  GSD robustness.
+- Two pre-window papers that the web searches surfaced and that this file had not logged
+  were read at abstract level (MDPI *Remote Sensing* 17, 1251 via Crossref; 2605.00256).
+
+Revised (v2+) versions inside the window are not covered.
+
+| item | date | finding | verdict |
+|---|---|---|---|
+| [cascade-sam3](https://github.com/fakmalpradana/cascade-sam3) longer runs (11-05 thread; commits [8ad449f](https://github.com/fakmalpradana/cascade-sam3/commit/8ad449f), [0faa630](https://github.com/fakmalpradana/cascade-sam3/commit/0faa630), [d345487](https://github.com/fakmalpradana/cascade-sam3/commit/d345487)) | 11-05 to 11-06 | Same 6 held-out Jakarta / Bontang areas, now with longer training. Stage 1 (detector 12 epochs, SAM 3 decoder 6 epochs, val mIoU 0.885): detector alone AP50 0.770, IoU 0.885, boundary F1 0.800; cascade 0.774 / 0.886 / 0.793. Stage 2 (detector input 504 → 672 px on 1008 px tiles, warm-started from stage 1, 8 more epochs on 6,000 tiles): detector 0.780 / 0.889 / 0.814; cascade 0.784 / 0.888 / 0.795. Thresholds tuned on `valid` raise val IoU to about 0.90 but do not carry to the test areas. The author's IoU > 0.90 target is still "not passed", and the newest README text says the cascade is no better than the detector on IoU or boundary F1 | `watch`, low priority; the open question is now mostly answered. With properly trained stages, a fine-tuned SAM 3 mask decoder on detector boxes adds about +0.004 AP50 and *loses* about 0.007–0.019 boundary F1. That strengthens the 11-05 reading that SAM 3 refinement is not where the gain is for buildings. The 1.33× detector-input step helps a little (+0.010 AP50, +0.014 boundary F1), but it is confounded with 8 extra epochs and more tiles, so it says nothing clean about the tree project's 1.5× result |
+| [VHR-Bench: When GeoFMs Meet VHR](https://arxiv.org/abs/2611.08003) | 11-05 | Ten datasets at ≤ 1.5 m (SpaceNet 2 buildings, HOTOSM buildings, **FLAIR 2**, **PureForest**, Open-Canopy-Small, EverWatch, NZ Cattle, xBD, SpaceNet 3, m-pv4ger), 12 frozen encoders, UPerNet / Faster R-CNN heads, 10% and 100% label fractions. DINOv3 ViT-L (web) aggregate 69.5 vs SkySense 69.2 and DINOv3-SAT 69.1 at 100%; SkySense leads at 10%; a short DINOv3 continuation on 1.02 M VHR tiles gives 70.0. **No instance segmentation task**, no Mask R-CNN, no resolution / GSD study. Every configuration is run over 3 decoder seeds (42, 1234, 2025), and the continued pretraining is repeated 3 times separately, so decoder-seed and pretraining-seed spread are reported apart (aggregate std 0.1–0.5; per-dataset detection std up to 2.8 mAP50 at 10% labels). The authors treat a 0.1-point gap as no separation. Code, configs and the continued model are promised "upon acceptance" (a PANGAEA fork) | `skip` for methods: frozen backbones, semantic heads. Useful as a template for the tree paper's multi-seed section: report mean ± std over seeds, say exactly what the seed controls, and do not claim gaps smaller than the spread. At full labels the web DINOv3, SkySense and DINOv3-SAT are within 0.4 aggregate points of each other, so it gives no reason to swap backbones |
+| [ReDHF: Reviving the Discarded High-Resolution Feature](https://arxiv.org/abs/2611.07994) (NeurIPS 2026) | 11-05 | DETR-family tiny-object detection: brings the stride-4 feature back through cross-scale deformable fusion, ellipse-guided auxiliary supervision and decoder queries that see all scales. +1.4 AP on AI-TOD-v2, +1.6 on VisDrone, +1.5 on SODA-D over its baselines, mostly on tiny / small objects. Boxes only; no code link; no repo found | `skip`: boxes, DETR, natural / drone scenes. It points the same way as the 11-04 resolution study (gains for small objects come from keeping high-resolution detail), which Mask R-CNN's P2 level already does |
+| [TerraMesh-Masks](https://arxiv.org/abs/2611.08081) (NeurIPS 2026; [data](https://huggingface.co/datasets/ibm-esa-geospatial/TerraMesh-Masks), [repo](https://github.com/IBM/TerraMesh-Masks)) | 11-05 | 16 M binary masks over 9 M TerraMesh samples, labelled from OpenStreetMap / Overture; 523-sample expert-reviewed eval set with 200+ classes. Open-vocabulary TerraMind 35.18% IoU vs DINOv3.txt 16.29% and SAM 3 11.33% | `skip`: open-vocabulary semantic, Sentinel-scale. One more figure showing frozen SAM 3 is weak on EO concepts |
+| [Fine-tuning-based transfer learning for off-nadir building extraction](https://doi.org/10.3390/rs17071251) (MDPI *Remote Sensing* 17, 1251) | 2025-04-01 (first assessed here; predates the window) | Pre-train on a large set with misaligned (off-nadir) labels, then fine-tune on a small clean set. Three new datasets; F1 0.943 low-rise, 0.868 mid-rise, 0.912 high-rise, 0.697 skyscrapers; beats teacher–student distillation and is cheaper. Semantic segmentation; abstract only (the MDPI page refused the fetch) | `watch`: no ignore regions and not instance-level, but it is a cheap alternative to try if the building project ever hand-corrects a small Paris subset: train on all of BD TOPO, then fine-tune on the corrected tiles. The gain is largest for tall buildings, which is where the Paris offset is worst |
+| [Remote SAMsing](https://arxiv.org/abs/2605.00256) | 2026-04-30 (first assessed here; predates the window) | Training-free multi-pass SAM 2 "segment everything" for large RS scenes (5 cm to 4.78 m GSD); coverage 30–68% → 91–98%. Tile size acts as a scale parameter: 1,000 → 250 px tiles raise Det@0.5 from 56% to 85% | `skip`: zero-shot SAM 2, not a trained detector. The tile-size effect is the zero-shot analogue of upscaling and does not bear on the tree project's 1.5× result with a trained Mask R-CNN |
+| [Swiss tree-species composition](https://arxiv.org/abs/2611.08095), [CanopyGIS](https://github.com/iscvlab/CanopyGIS) (GitHub), [GeoVectorVLM](https://github.com/fgvadq/GeoVectorVLM) (GitHub) | 11-05 to 11-06 | 30 m basal-area shares from 0.1 m RGB + ALS + embeddings (macro-R² 0.485); a thesis pipeline mixing SAM 3, DeepForest seeds and watershed for crowns with no AP evaluation; an empty footprint-vectorisation repo ("code will be released upon paper acceptance") | `skip` |
+| Building / dense small-object instance segmentation (aerial, instance-level) | — | **Nothing new** on arXiv in the window. Other new repos are 3D footprint viewers (Delhi, Karachi) | — |
+| Label-imagery misalignment / off-nadir offset | — | **Nothing new** in the window. The web search returned OMAF, the Columbia misaligned / partial-label paper (Fobi et al. 2020), the LOFT family and DragOSM (all logged), plus the 2025 MDPI paper above | — |
+| Mask2Former / Mask DINO, SAM 3 fine-tuning or distillation | — | **Nothing new** beyond the cascade-sam3 runs. The web search returned 2512.15564 and 2607.09583, both already logged | — |
+| Tree crown instance segmentation / OAM-TCD, canopy-group / crowd / partial labels | — | **Nothing new**. restor-foundation/tcd last push still 2026-03-07; restor/tcd dataset 2024-11; models 2025-07; CanopyRS last push 09-30. The group / crowd search returned only papers already logged (SelvaMask, the MDPI exhaustive-crown paper, 2602.13022, ZS-TreeSeg). No new evidence on ignoring groups vs other handling | — |
+| Seed variance / evaluation protocol | — | Nothing specific to RS instance segmentation beyond VHR-Bench above; the web search found no 2026 RS instance-segmentation paper that reports seed std for mask AP | — |
+| GSD / resolution robustness, input upscaling | — | **Nothing new** in the window | — |
+| [MixSIS](https://arxiv.org/abs/2610.37138) / [code](https://github.com/chwilms/MixSIS) (11-02 thread) | 10-27 | Still v1; last push 10-29 | **Nothing new** |
+| [LiG-DETR](https://arxiv.org/abs/2610.09511) (10-12 thread) | 10-07 | Still v1, no code link; no repo found | `watch`: unchanged |
+| [TAG](https://arxiv.org/abs/2610.14651) / [TAG_SAM3](https://github.com/MiSsU-HH/TAG_SAM3) (10-16 thread) | 10-10 | Still v1; last push still 11-03 07:19Z | `skip` stands: unchanged |
+| [ShadowCast](https://arxiv.org/abs/2610.23440) (10-21 thread) | 10-20 (v2) | Still v2; no code link. New repos named ShadowCast are unrelated (a Vite template, games) | `watch`: unchanged, low priority |
+| [OpenEarth-OVS44](https://arxiv.org/abs/2610.29642) (10-22 thread) | 10-21 | Still v1; no repo found | `watch`: unchanged |
+| [LACE](https://arxiv.org/abs/2609.26549) (09-22 thread) | 09-22 | Still v1, "Code and model checkpoints to be released upon publication"; no repo found | `watch`: unchanged |
+| [AirPan / LoD-Loc v4](https://arxiv.org/abs/2611.00704) (11-03 thread) | 10-31 | Still v1; no code or data link; no repo found | `watch`: unchanged, low priority |
+| [Mammography input-resolution study](https://arxiv.org/abs/2611.04200) (11-04 thread) | 11-03 | Still v1; linked code repo still 404 | `watch`: unchanged |
+| [SAM 3](https://github.com/facebookresearch/sam3) (10-12 thread) | — | Last push still 10-23; releases and tags still empty. Newest facebook SAM 3 models on Hugging Face are still sam3 and sam3.1 | **Nothing new** |
+| [IGN ORTHO Express 2026](https://forum.openstreetmap.fr/t/ign-ortho-express-2026/41923) (10-12 thread) | 11-03 | Still 103 posts; the last is 11-03 21:10Z (Yonne). No Paris, 92, 93 or 94. The web search found nothing either | `watch`: unchanged. Still do not plan on 2026 aerial ortho for Paris |
+| BD TOPO December edition 264 (11-03 thread) | — | Not out. The [download service](https://data.geopf.fr/telechargement/resource/BDTOPO?zone=D075) (31 entries for D075) still tops out at **2026-09-15** (263). Pre-diffusion still scheduled 12-04; the web search found nothing on its building changes | `watch`: unchanged. Pin the label edition before any re-pull |
+| BD ORTHO, Paris and petite couronne | — | The [download service](https://data.geopf.fr/telechargement/resource/BDORTHO?zone=D075) still has the 0.20 m RVB / IRC **2024-01-01** edition as the newest for D075, D092, D093 and D094 | **Nothing new** |
+| [IGNF on Hugging Face](https://huggingface.co/IGNF) | — | Unchanged: newest dataset still FLAIR-HUB (06-05), newest models still 04-28 | **Nothing new** |
+
+**Takeaway.**
+- Nothing in this window is `act`. cascade-sam3 ran both stages to proper length: the
+  fine-tuned SAM 3 refiner adds about +0.004 AP50 over its detector and lowers boundary
+  F1. Taken with the 11-04 and 11-05 entries, that is enough to stop tracking SAM 3 mask
+  refinement as a route to better building masks.
+- For the tree paper's multi-seed study, VHR-Bench is a reasonable model for the write-up:
+  3 seeds, mean ± std, decoder-seed and pretraining-seed variance reported apart, and no
+  claim for gaps inside the spread. Nothing new bears on canopy-group handling or on the
+  1.5× result; no published OAM-TCD figure under the same protocol as the 0.3363 has turned up.
+- Buildings: no new offset-tolerant instance method. One pre-window paper (MDPI 2025)
+  supports "pre-train on noisy misaligned labels, fine-tune on a small clean set" as a
+  cheap option if a corrected Paris subset is ever made. All other open threads
+  (LiG-DETR code, TAG code, ShadowCast code, OpenEarth-OVS44 release, LACE code, AirPan
+  release, SAM 3 releases, ORTHO Express for Paris/92/93/94, BD TOPO 264) are unchanged.
